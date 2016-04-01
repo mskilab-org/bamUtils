@@ -1,0 +1,137 @@
+Last login: Thu Mar 31 20:33:46 on console
+ImielinskiLab02:~ knagdimov$
+ImielinskiLab02:~ knagdimov$
+ImielinskiLab02:~ knagdimov$ emacs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+File Edit Options Buffers Tools Imenu-R ESS Help
+} else {
+    bst$seq[ix] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix])))
+}
+}
+
+return(bst)
+}
+                else
+                    out = getSeq(hg, gr)
+}
+return(out)
+}
+}
+
+#' Count bases in cigar string
+#'
+#' Counts the total number of bases, per cigar, that fall into D, I, M, S categories.
+#' countCigar makes no distinction between, for instance 1S2M2S, 2S2M1S, or 3S2M
+#' @param cigar character vector of cigar strings
+#' @return a 4-column, length(cigar)-row matrix with the total counts for each type
+#' @export
+countCigar <- function(cigar) {
+
+    cigar.vals <- unlist(strsplit(cigar, "\\d+"))
+    cigar.lens <- strsplit(cigar, "[A-Z]")
+    lens <- nchar(gsub('\\d+', '', cigar))
+    lens[is.na(cigar)] <- 1
+
+    cigar.lens <- as.numeric(unlist(cigar.lens))
+    cigar.vals <- cigar.vals[cigar.vals != ""]
+    repr       <- rep(seq_along(cigar), lens)
+    dt         <- data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
+
+    smr.d      <- dt["D"][, sum(lens), by=group]
+    smr.i      <- dt["I"][, sum(lens), by=group]
+    smr.m      <- dt["M"][, sum(lens), by=group]
+    smr.s      <- dt["S"][, sum(lens), by=group]
+
+    out <- matrix(nrow=length(cigar), ncol=4, 0)
+    out[smr.d$group,1] <- smr.d$V1
+    out[smr.i$group,2] <- smr.i$V1
+    out[smr.m$group,3] <- smr.m$V1
+    out[smr.s$group,4] <- smr.s$V1
+    colnames(out) <- c('D','I','M','S')
+
+    return(out)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-UU-:----F1  bamUtils.R     Bot L1341 Git:master  (ESS[S] [none] ElDoc) ---------------------------------------------------------------------------------------------------------------------------------------------------------
+                                         
