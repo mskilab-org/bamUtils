@@ -454,3 +454,18 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
     return(gr)
 }
+
+#' Compute rpkm counts from counts
+#'
+#' takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
+#' @param counts GRanges, data.table or data.frame with records, width fields
+#' @param by Field to group counts by
+#' @note The denominator (ie total reads) is just the sum of counts$records
+#' @export
+counts2rpkm = function(counts, by)
+{
+    out = aggregate(1:nrow(counts), by = list(by), FUN = function(x) sum(counts$records[x])/ sum(counts$width[x]/1000));
+    out[,2] = out[,2]/sum(counts$records)*1e6;
+    names(out) = c('by', 'rpkm');
+    return(out);
+}
