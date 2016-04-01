@@ -1341,6 +1341,3 @@ countCigar <- function(cigar) {
 
     return(out)
 }
-
-
-
