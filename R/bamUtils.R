@@ -320,4 +320,137 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
     return(gr)
 }
 
+#' @name bam.cov.tile
+#' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
+#' @description
+#' Quick way to get tiled coverage via piping to samtools (~10 CPU-hours for 100bp tiles, 5e8 read pairs)
+#'
+#' Gets coverage for window size "window", pulling "chunksize" records at a time and incrementing bin
+#' corresponding to midpoint or overlaps of corresponding (proper pair) fragment (uses TLEN and POS for positive strand reads that are part of a proper pair)
+#'
+#' @param bam.file character scalar input bam file
+#' @param window integer scalar window size (in bp)
+#' @param chunksize integer scalar, size of window
+#' @param min.mapq integer scalar, minimim map quality reads to consider for counts
+#' @param verbose dummy
+#' @param max.tlen max paired-read insert size to consider
+#' @param st.flag samtools flag to filter reads on [Default: -f 0x02 -F 0x10]
+#' @param fragments dummy
+#' @param region dummy
+#' @param do.gc dummy
+#' @param midpoint if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment
+#' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered
+#' in the given bin.
+#' @export
+bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE,
+                        max.tlen = 1e4, ## max insert size to consider
+                        st.flag = "-f 0x02 -F 0x10",
+                        fragments = TRUE,
+                        region = NULL,
+                        do.gc = FALSE,
+                        midpoint = TRUE ## if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment
+                        )
+{
+    cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
+    sl = seqlengths(BamFile(bam.file))
+
+    counts = lapply(sl, function(x) rep(0, ceiling(x/window)))
+    numwin = sum(sapply(sl, function(x) ceiling(x/window)))
+
+    if (!is.null(region))
+    {
+        cat(sprintf('Limiting to region %s\n', region))
+        cmd = 'samtools view %s %s -q %s %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+        if (!file.exists(paste(bam.file, '.bam', sep = '')))
+            if (file.exists(bai.file <- gsub('.bam$', '.bai', bam.file)))
+            {
+                .TMP.DIR = '~/temp/.samtools'
+                system(paste('mkdir -p', TMP.DIR))
+                tmp.fn = paste(normalizePath(TMP.DIR), '/tmp', runif(1), sep = '')
+                system(sprintf('ln -s %s %s.bam', bam.file, tmp.fn))
+                system(sprintf('ln -s %s %s.bam.bai', bai.file, tmp.fn))
+            }
+
+        cat('Calling', sprintf(cmd, st.flag, paste(tmp.fn, 'bam', sep = '.'), min.mapq, region), '\n')
+        p = pipe(sprintf(cmd, st.flag, paste(tmp.fn, 'bam', sep = '.'), min.mapq, region), open = 'r')
+    }
+    else
+    {
+        cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
+        p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
+    }
+
+    i = 0
+    sl.dt = data.table(chr = names(sl), len = sl)
+    counts = sl.dt[, list(start = seq(1, len, window)), by = chr]
+    counts = counts[, bin := 1:length(start), by = chr]
+    counts[, end := pmin(start + window-1, sl[chr])]
+    counts[, count := 0]
+    counts[, rowid := 1:length(count)]
+    setkeyv(counts, c("chr", "bin")) ## now we can quickly populate the right entries
+    totreads = 0
+
+    st = Sys.time()
+    if (verbose)
+        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and insert size limit', max.tlen, 'with midpoint set to', midpoint, '\n')
+
+    while (length(chunk <- readLines(p, n = chunksize))>0)
+    {
+        i = i+1
+
+        if (fragments)
+        {
+            chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3)<=max.tlen, ]
+            if (midpoint) ## only take midpionts
+                chunk[, bin := 1 + floor((V2 + V3/2)/window)] ## use midpoint of template to index the correct bin
+            else ## enumerate all bins containing fragment i.e. where fragments overlap multiple bins  (slightly slower)
+            {
+                if (verbose)
+                    cat('!!!! Counting all overlapping bins !!!\n')
+                chunk[, ":="(bin1 = 1 + floor((V2)/window), bin2 = 1 + floor((V2+V3)/window))]
+                chunk = chunk[, list(V1, bin = bin1:bin2), by = list(ix = 1:length(V1))]
+            }
+        }
+        else ## just count reads
+        {
+            cat('counting reads\n')
+            chunk = fread(paste(chunk, collapse = "\n"), header = F)
+            chunk[, bin := 1 + floor((V2)/window)]
+        }
+
+        tabs = chunk[, list(newcount = length(V1)), by = list(chr = as.character(V1), bin)] ## tabulate reads to bins data.table style
+        counts[tabs, count := count + newcount] ## populate latest bins in master data.table
+
+        ## should be no memory issues here since we preallocate the data table .. but they still appear
+        if (do.gc)
+        {
+            print('GC!!')
+            print(gc())
+        }
+                                        #          print(tables())
+
+        ## report timing
+        if (verbose)
+        {
+            cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
+            timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
+            meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
+            totreads = meancov * numwin
+            tottime = totreads*timeelapsed/(i*chunksize)
+            rate = i*chunksize / timeelapsed / 3600
+            cat('mean cov:', round(meancov,1), 'per bin, estimated tot fragments:', round(totreads/1e6,2), 'million fragments, processing', rate,
+                'fragments/second\ntime elapsed:', round(timeelapsed,2), 'hours, estimated time remaining:', round(tottime - timeelapsed,2), 'hours', ', estimated total time', round(tottime,2), 'hours\n')
+        }
+    }
+
+    gr = GRanges(counts$chr, IRanges(counts$start, counts$end), count = counts$count, seqinfo = Seqinfo(names(sl), sl))
+    if (verbose)
+        cat("Finished computing coverage, and making GRanges\n")
+    close(p)
+
+    if (!is.null(region))
+        system(sprintf('rm %s.bam %s.bam.bai', tmp.fn, tmp.fn))
+
+    return(gr)
+}
