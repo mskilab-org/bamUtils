@@ -1118,5 +1118,48 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     }
 }
 
+#' bamflag
+#'
+#' shortcut .. assumes reads are GappedAlignments with flag variable or actual integers representing bam flag
+#' @param reads GenomicRanges holding the reads
+#' @name bamflag
+#' @export
+bamflag = function(reads)
+{
+    if (inherits(reads, 'GappedAlignments') | inherits(reads, 'data.frame') | inherits(reads, 'GRanges'))
+        bf = reads$flag
+    else
+        bf = reads
+
+    out = matrix(as.numeric(intToBits(bf)), byrow = T, ncol = 32)[, 1:12, drop = FALSE]
+    colnames(out) = c('isPaired', 'isProperPair', 'isUnmappedQuery', 'hasUnmappedMate', 'isMinusStrand', 'isMateMinusStrand', 'isFirstMateRead', 'isSecondMateRead', 'isNotPrimaryRead', 'isNotPassingQualityControls', 'isDuplicate', 'isSupplementary')
+
+    return(out)
+                                        #    if (inherits(reads, 'GappedAlignments'))
+                                        #      return(bamFlagAsBitMatrix(values(reads)$flag))
+                                        #    else
+                                        #      return(bamFlagAsBitMatrix(reads))
+}
+
+
+#' bamtag
+#'
+#' outputs a tag that cats qname, first vs first second mate +/- secondary alignment +/- gr.string
+#' to give an identifier for determine duplicates in a read pile
+#' @param reads GenomicRanges holding the reads
+#' @name bamflag
+#' @export
+bamtag = function(reads, secondary = F, gr.string = F)
+{
+    grs = sec = NULL
+    if (secondary)
+        sec = bamflag(read$flag[, 'isNotPrimaryRead'])
+
+    if (gr.string)
+        grs = gr.string(reads, mb  = F)
+
+    return(paste(reads$qname, ifelse(bamflag(reads$flag)[, 'isFirstMateRead'], '1', '2'), grs, sec, sep = '_'))
+}
+
 
 
