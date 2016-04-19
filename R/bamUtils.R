@@ -1327,10 +1327,10 @@ countCigar <- function(cigar) {
     repr       <- rep(seq_along(cigar), lens)
     dt         <- data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
 
-    smr.d      <- dt["D"][, sum(lens), by=group]
-    smr.i      <- dt["I"][, sum(lens), by=group]
-    smr.m      <- dt["M"][, sum(lens), by=group]
-    smr.s      <- dt["S"][, sum(lens), by=group]
+    smr.d      <- dt["D",][, sum(lens), by=group]
+    smr.i      <- dt["I",][, sum(lens), by=group]
+    smr.m      <- dt["M",][, sum(lens), by=group]
+    smr.s      <- dt["S",][, sum(lens), by=group]
 
     out <- matrix(nrow=length(cigar), ncol=4, 0)
     out[smr.d$group,1] <- smr.d$V1
