@@ -619,7 +619,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     if (inherits(reads, 'GRangesList'))
     {
         was.grl = TRUE
-        r.id = as.data.frame(reads)$element
+        r.id = grl.unlist(reads)$grl.ix
         reads = unlist(reads)
     }
     else if (inherits(reads, 'data.frame'))
@@ -638,11 +638,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         stop('Reads must be either GRanges, GRangesList, or GappedAlignment object')
     else if (inherits(reads, 'data.frame'))
     {
-        if (is.null(reads$cigar) | is.null(reads$seq))
-            stop('Reads must have cigar and seq fields specified')
+#        if (is.null(reads$cigar) | is.null(reads$seq))
+#            stop('Reads must have cigar and seq fields specified')
     }
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
-        stop('Reads must have cigar and seq fields specified')
+ #   else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
+ #       stop('Reads must have cigar and seq fields specified')
 
     if (is.data.frame(reads))
     {
@@ -697,7 +697,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
     flip = str == '-'
 
-    seq = strsplit(seq, '')
+    if (!is.null(seq))
+        seq = strsplit(seq, '')
 
     cigar.vals = lapply(strsplit(cigar, "\\d+"), function(x) x[2:length(x)])
     cigar.lens = lapply(strsplit(cigar, "[A-Z]"), as.numeric)
@@ -780,8 +781,10 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     })
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
-                                        #  subs.base = lapply(md.vals, grep, pattern = '[ATGC]', value = T)
-    subs.base = lapply(1:length(seq), function(x) seq[[x]][subs.rpos[[x]]])
+    if (!is.null(seq))
+        subs.base = lapply(md.vals, grep, pattern = '[ATGC]', value = T)
+    else
+        subs.base = lapply(1:length(seq), function(x) seq[[x]][subs.rpos[[x]]])
 
                                         # make sure md and cigar are consistent
                                         # (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
@@ -838,16 +841,19 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     str <- str[iix] # JEREMIAH
 
     if (length(cigar.vals)>0)
-    {
+        {
         var.seq = lapply(1:length(cigar.vals),
                          function(i)
                          {
                              if (ends.seq[i]<starts.seq[i])
                                  return('') # deletion
                              else
-                                 seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
+                                 if (is.na(seq[iix[i]]))
+                                     rep('N', ends.seq[i]-starts.seq[i])
+                                 else
+                                     seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
                          })
-        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)
+        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)        
         values(other.gr)$varbase = sapply(var.seq, paste, collapse = '')
         values(other.gr)$type = cigar.vals
         values(other.gr)$iix = ix[iix];
@@ -1326,7 +1332,7 @@ countCigar <- function(cigar) {
     cigar.vals <- cigar.vals[cigar.vals != ""]
     repr       <- rep(seq_along(cigar), lens)
     dt         <- data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
-
+    
     smr.d      <- dt["D",][, sum(lens), by=group]
     smr.i      <- dt["I",][, sum(lens), by=group]
     smr.m      <- dt["M",][, sum(lens), by=group]
