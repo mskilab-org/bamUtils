@@ -288,8 +288,8 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
                 stop('BAM index not found, please find index and specify bam file argument as valid BamFile object')
         }
 
-    keep = which(seqnames(gr) %in% seqlevels(bam))
-
+    keep = which(as.character(seqnames(gr)) %in% seqlevels(bam))
+    
     if (length(keep)>0)
     {
         ix = c(keep[c(seq(1, length(keep), chunksize))], keep[length(keep)]+1);  ## prevent bam error from improper chromosomes
@@ -1347,3 +1347,7 @@ countCigar <- function(cigar) {
 
     return(out)
 }
+
+
+
+
