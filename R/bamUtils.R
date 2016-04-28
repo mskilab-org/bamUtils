@@ -805,6 +805,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
+        
         if (!is.null(tmp))
         {
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
