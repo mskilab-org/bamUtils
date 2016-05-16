@@ -124,8 +124,19 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
-    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
+    fixed.intervals = gr.fix(intervals, bam, drop = T)
+    param = ScanBamParam(which = fixed.intervals, what = what, flag = flag, tag = tag)
 
+    if (length(intervals)!=length(fixed.intervals))
+        {
+            warning(sprintf('%s intervals removed during fixing, %s intervals remaining', length(intervals)-length(fixed.intervals), length(intervals)))
+
+            if (length(fixed.intervals)==0)
+                {
+                    warning('About to load entire BAM into memory, giving you a second to think and kill the command')
+                    Sys.sleep(10)                    
+                }
+        }
     if (verbose)
         cat('Reading bam file\n')
     if (class(bam) == 'BamFile')
@@ -238,6 +249,9 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             print(Sys.time() - now)
         }
         if (as.grl && !as.data.table) {
+            if (!is(out, 'GRangesList'))
+                out = do.call(GRangesList, out)
+            
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -519,7 +533,7 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
         m.val <- values(m.gr)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
-        mcols(r.gr) <- rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
+        mcols(r.gr) <- rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
     } else if (isdt) {
         m.gr <- m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with=FALSE]
         r.gr <- rbind(reads, m.gr, use.names=TRUE)
@@ -619,7 +633,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     if (inherits(reads, 'GRangesList'))
     {
         was.grl = TRUE
-        r.id = as.data.frame(reads)$element
+        r.id = grl.unlist(reads)$grl.ix
         reads = unlist(reads)
     }
     else if (inherits(reads, 'data.frame'))
@@ -638,11 +652,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         stop('Reads must be either GRanges, GRangesList, or GappedAlignment object')
     else if (inherits(reads, 'data.frame'))
     {
-        if (is.null(reads$cigar) | is.null(reads$seq))
-            stop('Reads must have cigar and seq fields specified')
+#        if (is.null(reads$cigar) | is.null(reads$seq))
+#            stop('Reads must have cigar and seq fields specified')
     }
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
-        stop('Reads must have cigar and seq fields specified')
+ #   else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
+ #       stop('Reads must have cigar and seq fields specified')
 
     if (is.data.frame(reads))
     {
@@ -697,7 +711,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
     flip = str == '-'
 
-    seq = strsplit(seq, '')
+    if (!is.null(seq))
+        seq = strsplit(seq, '')
 
     cigar.vals = lapply(strsplit(cigar, "\\d+"), function(x) x[2:length(x)])
     cigar.lens = lapply(strsplit(cigar, "[A-Z]"), as.numeric)
@@ -780,8 +795,10 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     })
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
-                                        #  subs.base = lapply(md.vals, grep, pattern = '[ATGC]', value = T)
-    subs.base = lapply(1:length(seq), function(x) seq[[x]][subs.rpos[[x]]])
+    if (!is.null(seq))
+        subs.base = lapply(md.vals, grep, pattern = '[ATGC]', value = T)
+    else
+        subs.base = lapply(1:length(seq), function(x) seq[[x]][subs.rpos[[x]]])
 
                                         # make sure md and cigar are consistent
                                         # (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
@@ -805,6 +822,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
+        
         if (!is.null(tmp))
         {
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
@@ -838,16 +856,19 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     str <- str[iix] # JEREMIAH
 
     if (length(cigar.vals)>0)
-    {
+        {
         var.seq = lapply(1:length(cigar.vals),
                          function(i)
                          {
                              if (ends.seq[i]<starts.seq[i])
                                  return('') # deletion
                              else
-                                 seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
+                                 if (is.na(seq[iix[i]]))
+                                     rep('N', ends.seq[i]-starts.seq[i])
+                                 else
+                                     seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
                          })
-        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)
+        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)        
         values(other.gr)$varbase = sapply(var.seq, paste, collapse = '')
         values(other.gr)$type = cigar.vals
         values(other.gr)$iix = ix[iix];
@@ -1326,7 +1347,7 @@ countCigar <- function(cigar) {
     cigar.vals <- cigar.vals[cigar.vals != ""]
     repr       <- rep(seq_along(cigar), lens)
     dt         <- data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
-
+    
     smr.d      <- dt["D",][, sum(lens), by=group]
     smr.i      <- dt["I",][, sum(lens), by=group]
     smr.m      <- dt["M",][, sum(lens), by=group]
