@@ -1,4 +1,4 @@
-##
+#
 ##
 ## $$$$$$$\                                   $$\                        $$\                 $$\   $$\   $$\     $$\ $$\
 ## $$  __$$\                                  $$ |                       $$ |                $$ |  $$ |  $$ |    \__|$$ |
@@ -698,13 +698,21 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     flip = str == '-'
 
     if (!is.null(seq))
-        seq = strsplit(seq, '')
+        {
+            nix = sapply(seq, function(x) all(is.na(x)))
+            if (any(nix))
+                seq[nix] = ''
+            seq = strsplit(seq, '')
+        }
 
-    cigar.vals = lapply(strsplit(cigar, "\\d+"), function(x) x[2:length(x)])
-    cigar.lens = lapply(strsplit(cigar, "[A-Z]"), as.numeric)
+    cigar.vals = explodeCigarOps(cigar)
+    cigar.lens = explodeCigarOpLengths(cigar)
+    
+    ## cigar.vals = lapply(strsplit(cigar, "\\d+"), function(x) x[2:length(x)])
+    ## cigar.lens = lapply(strsplit(cigar, "[A-Z]"), as.numeric)
 
-    clip.left = sapply(cigar.vals, function(x) x[1] == 'S')
-    clip.right = sapply(cigar.vals, function(x) x[length(x)] == 'S')
+    clip.left = sapply(cigar.vals, function(x) x[1] %in% c('H', 'S'))
+    clip.right = sapply(cigar.vals, function(x) x[length(x)] %in% c('H', 'S'))
 
     if (any(clip.left))
         r.start[clip.left] = r.start[clip.left]-sapply(cigar.lens[which(clip.left)], function(x) x[1])
@@ -713,8 +721,9 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         r.end[clip.right] = r.end[clip.right]+sapply(cigar.lens[which(clip.right)], function(x) x[length(x)])
 
                                         # split md string into chars after removing "deletion" signatures and also
-                                        # any soft clipped base calls (bases followed by a 0
-    md.vals = strsplit(gsub('([ATGC])', '|\\1|', gsub('\\^[ATGC]+', '|', md)), '\\|')
+                                        # any soft clipped base calls (bases followed by a 0)
+    ##    md.vals = strsplit(gsub('([ATGCN])', '|\\1|', gsub('\\^[ATGCN]+', '|', md)), '\\|')
+    md.vals = strsplit(gsub('([A-Z])', '|\\1|', gsub('\\^[A-Z]+', '|', md)), '\\|')
 
                                         # ranges of different cigar elements relative to query ie read-centric coordinates
     starts.seq = lapply(1:length(cigar.lens), function(i)
@@ -730,6 +739,9 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))] = 0
         cumsum(x)
     })
+
+
+
 
                                         # ranges of different cigar elements relative to reference coordinatse
     starts.ref = lapply(1:length(cigar.lens), function(i)
@@ -752,7 +764,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     tmp.pos = lapply(1:length(md.vals), function(i)
     {
         x = md.vals[[i]]
-        nix = grepl('[ATGC]', x);
+                                        #        nix = grepl('[ATGCN]', x);
+        nix = grepl('[A-Z]', x);
         if (!any(nix))
             return(c())
         p = rep(0, length(x))
@@ -781,16 +794,18 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     })
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
-    if (!is.null(seq))
-        subs.base = lapply(md.vals, grep, pattern = '[ATGC]', value = T)
-    else
-        subs.base = lapply(1:length(seq), function(x) seq[[x]][subs.rpos[[x]]])
+    if (is.null(seq))
+        subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCN]', value = T), function(x) rep('X', length(x))) ## replace with N
+    else        
+        subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
+
 
                                         # make sure md and cigar are consistent
                                         # (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
                                         # also some MD are NA
     mlen.cigar = sapply(1:length(ends.seq), function(x) {mix = cigar.vals[[x]]=='M'; sum(ends.seq[[x]][mix]-starts.seq[[x]][mix]+1)})
-    mlen.md = sapply(md.vals, function(x) {ix = grepl('[ATGC]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
+                                        #    mlen.md = sapply(md.vals, function(x) {ix = grepl('[ATGCN]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
+    mlen.md = sapply(md.vals, function(x) {ix = grepl('[A-Z]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
     good.md = which(!is.na(md))
                                         #  good.md = which(mlen.md == mlen.cigar & !is.na(md))
 
@@ -808,11 +823,12 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
-        
+
         if (!is.null(tmp))
         {
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
             values(subs.gr)$varbase = unlist(subs.base[good.md])
+            values(subs.gr)$varlen = 1
             values(subs.gr)$type = 'X'
             values(subs.gr)$iix = ix[iix.md]
         }
@@ -845,26 +861,26 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         {
         var.seq = lapply(1:length(cigar.vals),
                          function(i)
-                         {
+                             {
+                                 
                              if (ends.seq[i]<starts.seq[i])
                                  return('') # deletion
                              else
-                                 if (is.na(seq[iix[i]]))
-                                     rep('N', ends.seq[i]-starts.seq[i])
+                                 if (length(seq[[iix[i]]])==0)
+                                     rep('N', ends.seq[i]-starts.seq[i]+1)
                                  else
                                      seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
                          })
         other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)        
         values(other.gr)$varbase = sapply(var.seq, paste, collapse = '')
+        values(other.gr)$varlen = cigar.lens
         values(other.gr)$type = cigar.vals
         values(other.gr)$iix = ix[iix];
-
         out.gr = sort(c(subs.gr, other.gr))
     }
     else
         out.gr = subs.gr
-
-
+    
                                         # add default colors to out.gr
     VAR.COL = get.varcol()
 
@@ -875,7 +891,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     out.gr$border = out.gr$col
 
     if (!soft)
-        if (any(soft.ix <<- out.gr$type == 'S'))
+        if (any(soft.ix <<- out.gr$type %in% c('H', 'S')))
             out.gr = out.gr[-which(soft.ix)]
 
     out.grl = rep(GRangesList(GRanges()), nreads)
@@ -885,6 +901,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     tmp.grl = split(out.gr, out.iix)
     out.grl[as.numeric(names(tmp.grl))] = tmp.grl
     values(out.grl)$qname[r.id] = reads$qname
+
 
     return(out.grl)
 }
@@ -1085,7 +1102,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 
         out.gr = GRanges()
         if (length(cigar.vals)>0)
-        {
+            {
             other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)
 
             if (get.seq)
@@ -1351,4 +1368,18 @@ countCigar <- function(cigar) {
 
 
 
+########################
+#' get.var.col
+#'
+#' simple function storing default
+#' variant color scheme
+#' @name get.var.col
+#' @export
+########################
+get.varcol = function()
+  {
+    VAR.COL = c('XA' = 'green', 'XG' = 'brown', 'XC' = 'blue', 'XT' = 'red', 'D' = 'white', 
+    'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
+    return(VAR.COL)
+  }
 
