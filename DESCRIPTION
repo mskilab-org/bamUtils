@@ -1,10 +1,16 @@
 Package: bamUtils
-Title: What the Package Does (one line, title case)
+Title: Utility functions for manipulating bams
 Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Authors@R: c(person(given = "Jeremiah", family = "Wala", role = c("aut"), email = "jwala@broadinstitute.org"), person(given = "Marcin",
+    family = "Imielinski", role = c("cre", "aut"), email =
+    "mai9037@med.cornell.edu"))
+Description: Utility functions for manipulating bams
 Depends:
-    R (>= 3.1)
+    R (>= 3.1),
+    data.table (>= 1.9),
+    Rsamtools (>= 1.18),
+    rtracklayer (>= 1.26),
+    GenomicAlignments
 License: What license is it under?
 LazyData: true
 RoxygenNote: 5.0.1
