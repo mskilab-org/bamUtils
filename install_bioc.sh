@@ -7,6 +7,11 @@ Rscript -e 'source("https://bioconductor.org/biocLite.R");
             biocLite("rtracklayer");
             biocLite("GenomicAlignments");
 
+            library(openssl);
+            library(Rsamtools);
+            library(rtracklayer);
+            library(GenomicAlignments);
+
             biocLite("BSgenome.Hsapiens.UCSC.hg19");
             biocLite("GenomicRanges"); 
             install.packages("devtools"); 
