@@ -3,13 +3,10 @@
 Rscript -e 'source("https://bioconductor.org/biocLite.R"); 
             biocLite("BiocInstaller"); 
             biocLite("Rsamtools");
-            library(Rsamtools);
             biocLite("openssl");
-  
             biocLite("rtracklayer");
-            library(rtracklayer);
             biocLite("GenomicAlignments");
-            library(GenomicAlignments);
+
             biocLite("BSgenome.Hsapiens.UCSC.hg19");
             biocLite("GenomicRanges"); 
             install.packages("devtools"); 
