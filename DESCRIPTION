@@ -8,6 +8,9 @@ Description: Utility functions for manipulating bams
 Depends:
     R (>= 3.1),
     data.table (>= 1.9),
+    rtracklayer (>= 1.26),
+    Rsamtools (>= 1.18),
+    GenomicAlignments
 Imports:
     rtracklayer (>= 1.26),
     Rsamtools (>= 1.18),
