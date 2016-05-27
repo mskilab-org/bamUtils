@@ -8,12 +8,10 @@ Description: Utility functions for manipulating bams
 Depends:
     R (>= 3.1),
     data.table (>= 1.9),
-
 Imports:
     rtracklayer (>= 1.26),
     Rsamtools (>= 1.18),
     GenomicAlignments
-    
 License: What license is it under?
 LazyData: true
 RoxygenNote: 5.0.1
