@@ -1,4 +1,4 @@
-## See https://github.com/metacran/r-builder for details.
+### See https://github.com/metacran/r-builder for details.
 
 language: r
 sudo: required 
