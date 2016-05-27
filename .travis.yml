@@ -1,6 +1,6 @@
 ## See https://github.com/metacran/r-builder for details.
 
-language: R
+language: r
 sudo: required 
 
 before_install:
