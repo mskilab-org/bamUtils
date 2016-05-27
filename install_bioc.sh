@@ -4,6 +4,7 @@ Rscript -e 'source("https://bioconductor.org/biocLite.R");
             biocLite("BiocInstaller"); 
             biocLite("Rsamtools");
             library(Rsamtools);
+            biocLite("openssl");
   
             biocLite("rtracklayer");
             library(rtracklayer);
