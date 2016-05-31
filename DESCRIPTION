@@ -11,8 +11,6 @@ Depends:
     Rsamtools (>= 1.18),
     rtracklayer (>= 1.26),
     GenomicAlignments
-Imports:
-    skitools
 License: What license is it under?
 LazyData: true
 RoxygenNote: 5.0.1
