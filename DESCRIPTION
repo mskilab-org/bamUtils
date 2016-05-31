@@ -10,7 +10,8 @@ Depends:
     data.table (>= 1.9),
     Rsamtools (>= 1.18),
     rtracklayer (>= 1.26),
-    GenomicAlignments,
+    GenomicAlignments
+Imports:
     skitools
 License: What license is it under?
 LazyData: true
