@@ -11,7 +11,6 @@ Depends:
     rtracklayer (>= 1.26),
     Rsamtools (>= 1.18),
     GenomicAlignments
-    openssl
 License: What license is it under?
 LazyData: true
 RoxygenNote: 5.0.1
