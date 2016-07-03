@@ -17,7 +17,13 @@
 ##
 ##
 
+#' @importFrom data.table data.table
+#' @importFrom data.table as.data.table
+#' @importFrom data.table data.table rbindlist
 
+#' @name read.bam
+#' @title read.bam
+#' @description
 #' Read BAM file into GRanges or data.table
 #'
 #' Wrapper around Rsamtools bam scanning functions,
@@ -468,6 +474,50 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
     return(gr)
 }
+
+############################
+#' get.mate.gr
+#'
+#' returns GRanges corresponding to mates of reads
+#' @name get.mate.gr
+############################
+get.mate.gr = function(reads)
+  {
+
+    if (inherits(reads, 'GRanges')) {
+      mpos = values(reads)$mpos
+      mrnm = as.vector(values(reads)$mrnm)
+      mapq = values(reads)$MQ
+      bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
+      mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
+    } else if (inherits(reads, 'data.table')) {
+      mpos <- reads$mpos
+      mrnm <- reads$mrnm
+      mapq = reads$MQ
+      bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
+      mrnm[bad.chr] <- reads$seqnames[bad.chr]
+    }
+    
+    if (inherits(reads, 'GappedAlignments'))
+      mwidth = qwidth(reads)
+    else
+      {
+        mwidth = reads$qwidth
+        mwidth[is.na(mwidth)] = 0
+      }
+        
+    mwidth[is.na(mpos)] = 0
+    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
+    mpos[is.na(mpos)] = 1;
+    
+    if (inherits(reads, 'GappedAlignments'))
+      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    else if (inherits(reads, 'GRanges'))
+      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    else if (inherits(reads, 'data.table'))
+      ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
+  }
+
 
 #' Compute rpkm counts from counts
 #'

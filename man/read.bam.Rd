@@ -2,7 +2,7 @@
 % Please edit documentation in R/bamUtils.R
 \name{read.bam}
 \alias{read.bam}
-\title{Read BAM file into GRanges or data.table}
+\title{read.bam}
 \usage{
 read.bam(bam, intervals = NULL, gr = intervals, all = FALSE,
   bami = NULL, pairs.grl = TRUE, stripstrand = TRUE,
@@ -59,6 +59,8 @@ read.bam(bam, intervals = NULL, gr = intervals, all = FALSE,
 Reads in one of GRanges, GRangesList or data.table
 }
 \description{
+Read BAM file into GRanges or data.table
+
 Wrapper around Rsamtools bam scanning functions,
 by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
 }
