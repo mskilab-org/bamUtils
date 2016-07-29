@@ -925,8 +925,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         {
         var.seq = lapply(1:length(cigar.vals),
                          function(i)
-                             {
-                                 
+                             {                                 
                              if (ends.seq[i]<starts.seq[i])
                                  return('') # deletion
                              else
@@ -1248,6 +1247,7 @@ bamtag = function(reads, secondary = F, gr.string = F)
     return(paste(reads$qname, ifelse(bamflag(reads$flag)[, 'isFirstMateRead'], '1', '2'), grs, sec, sep = '_'))
 }
 
+
 #' @name get_seq
 #' @title get_seq
 #' Retrieve genomic sequenes
@@ -1263,137 +1263,218 @@ bamtag = function(reads, secondary = F, gr.string = F)
 #' @param verbose Increase verbosity
 #' @return DNAStringSet of sequences
 #' @export
-get_seq = function(hg, gr, unlist = TRUE, mc.cores = 1, mc.chunks = mc.cores,
-                   as.data.table = FALSE, verbose = FALSE)
+function(hg, gr, unlist = T, mc.cores = 1, mc.chunks = mc.cores, add.chr = TRUE,
+     as.data.table = FALSE, verbose = FALSE)
 {
-    if (inherits(gr, 'GRangesList'))
+  if (inherits(gr, 'GRangesList'))
     {
-        grl = gr;
-        old.names = names(grl);
-        gr = unlist(grl);
-        names(gr) = unlist(lapply(1:length(grl), function(x) rep(x, length(grl[[x]]))))
-        seq = get_seq(hg, gr, mc.cores = mc.cores, mc.chunks = mc.chunks, verbose = verbose)
-        cl = class(seq)
-        out = split(seq, names(gr))
-        out = out[order(as.numeric(names(out)))]
-        if (unlist)
-            out = do.call('c', lapply(out, function(x) do.call(cl, list(unlist(x)))))
-        names(out) = names(grl)
-        return(out)
+      grl = gr;
+      old.names = names(grl);
+      gr = unlist(grl);
+      names(gr) = unlist(lapply(1:length(grl), function(x) rep(x, length(grl[[x]]))))
+      seq = get_seq(hg, gr, mc.cores = mc.cores, mc.chunks = mc.chunks, verbose = verbose)
+      cl = class(seq)
+      out = split(seq, names(gr))
+      out = out[order(as.numeric(names(out)))]
+      if (unlist)
+        out = do.call('c', lapply(out, function(x) do.call(cl, list(unlist(x)))))
+      names(out) = names(grl)
+      return(out)
     }
-    else
+  else
     {
-        if (is(hg, 'ffTrack'))
+      if (is(hg, 'ffTrack'))
         {
-            if (!isClass('ffTrack'))
-                stop('ffTrack library needs to be loaded')
-            if (!all(sort(hg@.levels) == sort(c('A', 'T', 'G', 'C', 'N'))))
-                cat("ffTrack not in correct format for get_seq, levels must contain only: 'A', 'T', 'G', 'C', 'N'\n")
+          if (!all(sort(levels(hg)) == sort(c('A', 'T', 'G', 'C', 'N'))))
+            cat("ffTrack not in correct format for get_seq, levels must contain only: 'A', 'T', 'G', 'C', 'N'\n")
         }
-        else ## only sub in 'chr' if hg is a BSenome
-            if (!all(grepl('chr', as.character(seqnames(gr)))))
-                gr = gr.chr(gr)
+      
+      if (is.character(hg))
+          {
+              if (!file.exists(hg))
+                  stop(hg, 'file not found')
+              
+              if (!grepl('\\.2bit$', hg))
+                  cat('Only .2bit files supported for genomes')
 
-        gr = gr.fix(gr, hg)
-        if (mc.cores>1)
+              hg = TwoBitFile(hg)
+          }
+      
+      gr = gr.fix(gr, hg)
+
+      ## only sub in 'chr' if hg is a BSGenome
+      if (add.chr == TRUE)
+          {
+              if (!all(grepl('chr', as.character(seqnames(gr)))) & all(grepl('chr', names(seqlengths(hg)))))
+                  gr = gr.chr(gr)
+          }
+
+      if (mc.cores>1)
         {
-            ix = suppressWarnings(split(1:length(gr), 1:mc.chunks))
+          ix = suppressWarnings(split(1:length(gr), 1:mc.chunks))
 
-            if (is(hg, 'ffTrack'))
+          if (is(hg, 'ffTrack'))
             {
-
-                mcout <- mclapply(ix, function(x)
+              mcout <- mclapply(ix, function(x) 
                 {
-                    tmp = suppressWarnings(hg[gr[x]])
-                    if (any(is.na(tmp)))
-                        stop("ffTrack corrupt: has NA values, can't convert to DNAString")
-
-                    if (!as.data.table) {
-                        bst = DNAStringSet(sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse = '')))
-                        names(bst) = names(gr)[x]
-                    } else {
-                        bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse='')))
-                        bst[, names:=names(gr)[x]]
-                    }
-
-                    if (any(strand(gr)[x]=='-'))
-                    {
-                        ix.tmp = as.logical(strand(gr)[x]=='-')
-                        if (!as.data.table)
-                            bst[ix.tmp] = Biostrings::complement(bst[ix.tmp])
-                        else
-                            bst$seq[ix.tmp] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix.tmp])))
-                    }
-
-                    if (verbose)
-                        cat('.')
-
-                    return(bst)
-                }
-              , mc.cores = mc.cores)
-
-                if (!as.data.table)
-                {
-                    if (length(mcout)>1)
-                        tmp = c(mcout[[1]], mcout[[2]])
-                    out <- do.call('c', mcout)[order(unlist(ix))]
-                }
-                else
-                    out <- rbindlist(mcout)
-            }
-            else
-            {
-                out = do.call(c, mclapply(ix, function(x)
-                {
-                    if (verbose)
-                        cat('.')
-                    return(getSeq(hg, gr[x]))
-                }
-               ,mc.cores = mc.cores))[order(unlist(ix))]
-                if (verbose)
-                    cat('\n')
-            }
-        }
-        else
-        {
-            if (is(hg, 'ffTrack'))
-            {
-                tmp = suppressWarnings(hg[gr])
-
-                tmp[is.na(tmp)] = 'N'
-
-                if (any(is.na(tmp)))
+                  tmp = hg[gr[x]] ## already  comes out reverse if the sequence is on the negative strand
+                  
+                  if (any(is.na(tmp)))
                     stop("ffTrack corrupt: has NA values, can't convert to DNAString")
 
-                if (as.data.table) {
-                    bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse='')))
-                    bst[, names:=names(gr)]
-                } else {
-                    bst = DNAStringSet(sapply(split(tmp, as.numeric(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse = '')))
-                    names(bst) = names(gr)
-                }
+                  if (!as.data.table) {
+                    bst = DNAStringSet(sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse = '')))
+                    names(bst) = names(gr)[x]
+                  } else {
+                    bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse='')))
+                    bst[, names:=names(gr)[x]]
+                  }
+                  
 
-                if (any(as.character(strand(gr))=='-'))
-                {
-                    ix = as.logical(strand(gr)=='-')
-                    if (!as.data.table) {
-                        bstc <- as.character(bst)
-                        bstc[ix] <- as.character(Biostrings::complement(bst[ix]))
-                        bst <- DNAStringSet(bstc)  ## BIZARRE bug with line below
-                                        #bst[ix] = Biostrings::complement(bst[ix])
-                    } else {
-                        bst$seq[ix] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix])))
+                  if (any(strand(gr)[x]=='-'))
+                    {
+                      ix.tmp = as.logical(strand(gr)[x]=='-')
+                      if (!as.data.table)
+                        bst[ix.tmp] = Biostrings::complement(bst[ix.tmp])
+                      else
+                        bst$seq[ix.tmp] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix.tmp])))
                     }
+                                                     
+                  if (verbose)
+                    cat('.')
+                  
+                  return(bst)
                 }
+                , mc.cores = mc.cores)
 
-                return(bst)
-            }
+            if (!as.data.table)
+              {
+                if (length(mcout)>1)
+                  tmp = c(mcout[[1]], mcout[[2]])
+                out <- do.call('c', mcout)[order(unlist(ix))]
+              }
             else
-                out = getSeq(hg, gr)
+               out <- rbindlist(mcout)
+          }
+          else if (is(hg, '"TwoBitFile'))
+              {
+                  if (verbose)
+                      cat('Reading from 2bit file', path(hg), '\n')
+                  
+                  mcout <- mclapply(ix, function(x) 
+                      {
+                          bst = import(hg, which = gr)
+                          
+                          if (as.data.table) {
+                              bst <- data.table(seq=sapply(split(bst$seq, as.vector(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse='')))
+                              bst[, names:=names(gr)]
+                          }
+
+                          if (any(strand(gr)[x]=='-'))
+                              {
+                                  ix.tmp = as.logical(strand(gr)[x]=='-')
+                                  if (!as.data.table)
+                                      bst[ix.tmp] = Biostrings::reverseComplement(bst[ix.tmp])
+                                  else
+                                      bst$seq[ix.tmp] <- as.character(Biostrings::reverseComplement(DNAStringSet(bst$seq[ix.tmp])))
+                              }
+                          
+                          if (verbose)
+                              cat('.')
+                          
+                          return(bst)
+                      }   , mc.cores = mc.cores)
+                  if (!as.data.table)
+                      {
+                          if (length(mcout)>1)
+                              tmp = c(mcout[[1]], mcout[[2]])
+                          out <- do.call('c', mcout)[order(unlist(ix))]
+                      }
+                  else
+                      out <- rbindlist(mcout)
+              }          
+          else
+            {
+              out = do.call(c, mclapply(ix, function(x)
+                {
+                  if (verbose)
+                    cat('.')
+                  return(getSeq(hg, gr[x]))
+                }
+                ,mc.cores = mc.cores))[order(unlist(ix))]
+              if (verbose)
+                cat('\n')
+            }
         }
-        return(out)
+      else
+          {
+          if (is(hg, 'ffTrack'))
+            {
+              tmp = hg[gr] ## already  comes out reverse if the sequence is on the negative strand
+
+              tmp[is.na(tmp)] = 'N'
+
+              if (any(is.na(tmp)))
+                stop("ffTrack corrupt: has NA values, can't convert to DNAString")
+              
+              if (as.data.table) {
+                bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse='')))
+                bst[, names:=names(gr)]
+              } else {
+                bst = DNAStringSet(sapply(split(tmp, as.numeric(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse = '')))
+                names(bst) = names(gr)
+              }
+
+              if (any(as.character(strand(gr))=='-'))
+                {
+                  ix = as.logical(strand(gr)=='-')
+                  if (!as.data.table) {
+                    bstc <- as.character(bst)
+                    bstc[ix] <- as.character(Biostrings::complement(bst[ix]))
+                    bst <- DNAStringSet(bstc)  ## BIZARRE bug with line below
+                    #bst[ix] = Biostrings::complement(bst[ix])
+                  } else { 
+                    bst$seq[ix] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix])))
+                  }
+                }
+              
+              return(bst)
+          }
+          else if (inherits(hg, 'TwoBitFile'))
+              {
+                  if (verbose)
+                      cat('Reading from 2bit file', path(hg), '\n')
+
+                  bst = as.character(import(hg, which = gr))
+                  
+                  if (as.data.table) {
+                      bst <- data.table(seq=sapply(split(bst, as.vector(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse='')))
+                      bst[, names:=names(gr)]
+                  }
+                  
+                  if (any(strand(gr)=='-'))
+                      {
+                          ix.tmp = as.logical(strand(gr)=='-')
+                          if (!as.data.table)
+                              bst[ix.tmp] = as.character(Biostrings::reverseComplement(DNAStringSet(bst[ix.tmp])))
+                          else
+                              bst$seq[ix.tmp] <- as.character(Biostrings::reverseComplement(DNAStringSet(bst$seq[ix.tmp])))
+                      }
+                  
+                  if (verbose)
+                      cat('.')
+
+                  if (!as.data.table)
+                      bst = DNAStringSet(bst)
+                  return(bst)
+              }         
+          else            
+            out = getSeq(hg, gr)
+        }      
+      return(out)
     }
 }
+
 
 #' Count bases in cigar string
 #'
