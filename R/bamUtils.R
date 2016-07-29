@@ -17,13 +17,7 @@
 ##
 ##
 
-#' @importFrom data.table data.table
-#' @importFrom data.table as.data.table
-#' @importFrom data.table data.table rbindlist
 
-#' @name read.bam
-#' @title read.bam
-#' @description
 #' Read BAM file into GRanges or data.table
 #'
 #' Wrapper around Rsamtools bam scanning functions,
@@ -130,19 +124,8 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
-    fixed.intervals = gr.fix(intervals, bam, drop = T)
-    param = ScanBamParam(which = fixed.intervals, what = what, flag = flag, tag = tag)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
-    if (length(intervals)!=length(fixed.intervals))
-        {
-            warning(sprintf('%s intervals removed during fixing, %s intervals remaining', length(intervals)-length(fixed.intervals), length(intervals)))
-
-            if (length(fixed.intervals)==0)
-                {
-                    warning('About to load entire BAM into memory, giving you a second to think and kill the command')
-                    Sys.sleep(10)                    
-                }
-        }
     if (verbose)
         cat('Reading bam file\n')
     if (class(bam) == 'BamFile')
@@ -255,9 +238,6 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             print(Sys.time() - now)
         }
         if (as.grl && !as.data.table) {
-            if (!is(out, 'GRangesList'))
-                out = do.call(GRangesList, out)
-            
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -475,50 +455,6 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     return(gr)
 }
 
-############################
-#' get.mate.gr
-#'
-#' returns GRanges corresponding to mates of reads
-#' @name get.mate.gr
-############################
-get.mate.gr = function(reads)
-  {
-
-    if (inherits(reads, 'GRanges')) {
-      mpos = values(reads)$mpos
-      mrnm = as.vector(values(reads)$mrnm)
-      mapq = values(reads)$MQ
-      bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
-      mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
-    } else if (inherits(reads, 'data.table')) {
-      mpos <- reads$mpos
-      mrnm <- reads$mrnm
-      mapq = reads$MQ
-      bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
-      mrnm[bad.chr] <- reads$seqnames[bad.chr]
-    }
-    
-    if (inherits(reads, 'GappedAlignments'))
-      mwidth = qwidth(reads)
-    else
-      {
-        mwidth = reads$qwidth
-        mwidth[is.na(mwidth)] = 0
-      }
-        
-    mwidth[is.na(mpos)] = 0
-    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
-    mpos[is.na(mpos)] = 1;
-    
-    if (inherits(reads, 'GappedAlignments'))
-      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'GRanges'))
-      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'data.table'))
-      ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
-  }
-
-
 #' Compute rpkm counts from counts
 #'
 #' takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
@@ -583,7 +519,7 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
         m.val <- values(m.gr)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
-        mcols(r.gr) <- rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
+        mcols(r.gr) <- rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
     } else if (isdt) {
         m.gr <- m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with=FALSE]
         r.gr <- rbind(reads, m.gr, use.names=TRUE)
@@ -887,7 +823,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
-        
+
         if (!is.null(tmp))
         {
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
@@ -1264,7 +1200,7 @@ bamtag = function(reads, secondary = F, gr.string = F)
 #' @param verbose Increase verbosity
 #' @return DNAStringSet of sequences
 #' @export
-function(hg, gr, unlist = T, mc.cores = 1, mc.chunks = mc.cores, add.chr = TRUE,
+get_seq = function(hg, gr, unlist = T, mc.cores = 1, mc.chunks = mc.cores, add.chr = TRUE,
      as.data.table = FALSE, verbose = FALSE)
 {
   if (inherits(gr, 'GRangesList'))
