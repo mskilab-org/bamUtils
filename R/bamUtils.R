@@ -104,7 +104,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
     if (is.null(intervals))
     {
         if (all)
-            intervals = seqinfo2gr(seqinfo(bam))
+            intervals = si2gr(seqinfo(bam))
         else
             stop('Must provide non empty interval list')
     }
@@ -962,10 +962,9 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     out.iix = r.id[values(out.gr)$iix]
     values(out.gr)$iix = NULL
 
-    tmp.grl = split(out.gr, out.iix)
+    tmp.grl = GenomicRanges::split(out.gr, out.iix)
     out.grl[as.numeric(names(tmp.grl))] = tmp.grl
     values(out.grl)$qname[r.id] = reads$qname
-
 
     return(out.grl)
 }
@@ -1446,4 +1445,33 @@ get.varcol = function()
     'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
     return(VAR.COL)
   }
+
+
+
+#' is.paired.end
+#'
+#' @description
+#'
+#' Check if bam file is paired end by using 0x1 flag
+#' 
+#' @name is.paired.end
+#' @export
+is.paired.end = function(bams)
+    {
+        out = sapply(bams, function(x)            
+            {
+                if (is.na(x))
+                    return(NA)
+                if (!file.exists(x))
+                    return(NA)
+                out = FALSE                
+                p = pipe(sprintf('samtools view -h  %s | head -n 100 | samtools view -f 0x1 - | wc -l', x))
+                ln = as.numeric(readLines(p))
+                out = ln>0
+                close(p)
+                return(out)                
+            })     
+        return(out)
+    }
+
 
