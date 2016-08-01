@@ -1,23 +1,11 @@
-#
-##
-## $$$$$$$\                                   $$\                        $$\                 $$\   $$\   $$\     $$\ $$\
-## $$  __$$\                                  $$ |                       $$ |                $$ |  $$ |  $$ |    \__|$$ |
-## $$ |  $$ | $$$$$$$\ $$$$$$\  $$$$$$\$$$$\$$$$$$\   $$$$$$\   $$$$$$\  $$ | $$$$$$$\       $$ |  $$ |$$$$$$\   $$\ $$ |
-## $$$$$$$  |$$  _____|\____$$\ $$  _$$  _$$\_$$  _| $$  __$$\ $$  __$$\ $$ |$$  _____|      $$ |  $$ |\_$$  _|  $$ |$$ |
-## $$  __$$< \$$$$$$\  $$$$$$$ |$$ / $$ / $$ |$$ |   $$ /  $$ |$$ /  $$ |$$ |\$$$$$$\        $$ |  $$ |  $$ |    $$ |$$ |
-## $$ |  $$ | \____$$\$$  __$$ |$$ | $$ | $$ |$$ |$$\$$ |  $$ |$$ |  $$ |$$ | \____$$\       $$ |  $$ |  $$ |$$\ $$ |$$ |
-## $$ |  $$ |$$$$$$$  \$$$$$$$ |$$ | $$ | $$ |\$$$$  \$$$$$$  |\$$$$$$  |$$ |$$$$$$$  |      \$$$$$$  |  \$$$$  |$$ |$$ |
-## \__|  \__|\_______/ \_______|\__| \__| \__| \____/ \______/  \______/ \__|\_______/        \______/    \____/ \__|\__|
-##
-##
-## Rsamtools util
-##
-## wrapper functions around Rsamtools and rtracklayer
-## to help extract read info from bam file, mutations pileups, and coverage from wig / bigwig files
-##
-##
+#' @import GenomicRanges
+#' @import GenomicAlignments
 
 
+#' @name read.bam
+#' @title read.bam
+#' @description 
+#' 
 #' Read BAM file into GRanges or data.table
 #'
 #' Wrapper around Rsamtools bam scanning functions,
