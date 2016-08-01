@@ -17,13 +17,7 @@
 ##
 ##
 
-#' @importFrom data.table data.table
-#' @importFrom data.table as.data.table
-#' @importFrom data.table data.table rbindlist
 
-#' @name read.bam
-#' @title read.bam
-#' @description
 #' Read BAM file into GRanges or data.table
 #'
 #' Wrapper around Rsamtools bam scanning functions,
@@ -104,7 +98,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
     if (is.null(intervals))
     {
         if (all)
-            intervals = seqinfo2gr(seqinfo(bam))
+            intervals = si2gr(seqinfo(bam))
         else
             stop('Must provide non empty interval list')
     }
@@ -130,19 +124,8 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
-    fixed.intervals = gr.fix(intervals, bam, drop = T)
-    param = ScanBamParam(which = fixed.intervals, what = what, flag = flag, tag = tag)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
-    if (length(intervals)!=length(fixed.intervals))
-        {
-            warning(sprintf('%s intervals removed during fixing, %s intervals remaining', length(intervals)-length(fixed.intervals), length(intervals)))
-
-            if (length(fixed.intervals)==0)
-                {
-                    warning('About to load entire BAM into memory, giving you a second to think and kill the command')
-                    Sys.sleep(10)                    
-                }
-        }
     if (verbose)
         cat('Reading bam file\n')
     if (class(bam) == 'BamFile')
@@ -255,9 +238,6 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             print(Sys.time() - now)
         }
         if (as.grl && !as.data.table) {
-            if (!is(out, 'GRangesList'))
-                out = do.call(GRangesList, out)
-            
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -475,50 +455,6 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     return(gr)
 }
 
-############################
-#' get.mate.gr
-#'
-#' returns GRanges corresponding to mates of reads
-#' @name get.mate.gr
-############################
-get.mate.gr = function(reads)
-  {
-
-    if (inherits(reads, 'GRanges')) {
-      mpos = values(reads)$mpos
-      mrnm = as.vector(values(reads)$mrnm)
-      mapq = values(reads)$MQ
-      bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
-      mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
-    } else if (inherits(reads, 'data.table')) {
-      mpos <- reads$mpos
-      mrnm <- reads$mrnm
-      mapq = reads$MQ
-      bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
-      mrnm[bad.chr] <- reads$seqnames[bad.chr]
-    }
-    
-    if (inherits(reads, 'GappedAlignments'))
-      mwidth = qwidth(reads)
-    else
-      {
-        mwidth = reads$qwidth
-        mwidth[is.na(mwidth)] = 0
-      }
-        
-    mwidth[is.na(mpos)] = 0
-    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
-    mpos[is.na(mpos)] = 1;
-    
-    if (inherits(reads, 'GappedAlignments'))
-      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'GRanges'))
-      GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'data.table'))
-      ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
-  }
-
-
 #' Compute rpkm counts from counts
 #'
 #' takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
@@ -583,7 +519,7 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
         m.val <- values(m.gr)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
-        mcols(r.gr) <- rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
+        mcols(r.gr) <- rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
     } else if (isdt) {
         m.gr <- m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with=FALSE]
         r.gr <- rbind(reads, m.gr, use.names=TRUE)
@@ -887,7 +823,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
-        
+
         if (!is.null(tmp))
         {
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
@@ -925,8 +861,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         {
         var.seq = lapply(1:length(cigar.vals),
                          function(i)
-                             {
-                                 
+                             {                                 
                              if (ends.seq[i]<starts.seq[i])
                                  return('') # deletion
                              else
@@ -962,10 +897,9 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     out.iix = r.id[values(out.gr)$iix]
     values(out.gr)$iix = NULL
 
-    tmp.grl = split(out.gr, out.iix)
+    tmp.grl = GenomicRanges::split(out.gr, out.iix)
     out.grl[as.numeric(names(tmp.grl))] = tmp.grl
     values(out.grl)$qname[r.id] = reads$qname
-
 
     return(out.grl)
 }
@@ -1249,152 +1183,6 @@ bamtag = function(reads, secondary = F, gr.string = F)
     return(paste(reads$qname, ifelse(bamflag(reads$flag)[, 'isFirstMateRead'], '1', '2'), grs, sec, sep = '_'))
 }
 
-#' @name get_seq
-#' @title get_seq
-#' Retrieve genomic sequenes
-#'
-#' Wrapper around getSeq which does the "chr" and seqnames conversion if necessary
-#' also handles GRangesList queries
-#'
-#' @param hg A BSgenome or and ffTrack object with levels = c('A','T','G','C','N')
-#' @param gr GRanges object to define the ranges
-#' @param unlist logical whether to unlist the final output into a single DNAStringSet. Default TRUE
-#' @param mc.cores Optional multicore call. Default 1
-#' @param mc.chunks Optional define how to chunk the multicore call. Default mc.cores
-#' @param verbose Increase verbosity
-#' @return DNAStringSet of sequences
-#' @export
-get_seq = function(hg, gr, unlist = TRUE, mc.cores = 1, mc.chunks = mc.cores,
-                   as.data.table = FALSE, verbose = FALSE)
-{
-    if (inherits(gr, 'GRangesList'))
-    {
-        grl = gr;
-        old.names = names(grl);
-        gr = unlist(grl);
-        names(gr) = unlist(lapply(1:length(grl), function(x) rep(x, length(grl[[x]]))))
-        seq = get_seq(hg, gr, mc.cores = mc.cores, mc.chunks = mc.chunks, verbose = verbose)
-        cl = class(seq)
-        out = split(seq, names(gr))
-        out = out[order(as.numeric(names(out)))]
-        if (unlist)
-            out = do.call('c', lapply(out, function(x) do.call(cl, list(unlist(x)))))
-        names(out) = names(grl)
-        return(out)
-    }
-    else
-    {
-        if (is(hg, 'ffTrack'))
-        {
-            if (!isClass('ffTrack'))
-                stop('ffTrack library needs to be loaded')
-            if (!all(sort(hg@.levels) == sort(c('A', 'T', 'G', 'C', 'N'))))
-                cat("ffTrack not in correct format for get_seq, levels must contain only: 'A', 'T', 'G', 'C', 'N'\n")
-        }
-        else ## only sub in 'chr' if hg is a BSenome
-            if (!all(grepl('chr', as.character(seqnames(gr)))))
-                gr = gr.chr(gr)
-
-        gr = gr.fix(gr, hg)
-        if (mc.cores>1)
-        {
-            ix = suppressWarnings(split(1:length(gr), 1:mc.chunks))
-
-            if (is(hg, 'ffTrack'))
-            {
-
-                mcout <- mclapply(ix, function(x)
-                {
-                    tmp = suppressWarnings(hg[gr[x]])
-                    if (any(is.na(tmp)))
-                        stop("ffTrack corrupt: has NA values, can't convert to DNAString")
-
-                    if (!as.data.table) {
-                        bst = DNAStringSet(sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse = '')))
-                        names(bst) = names(gr)[x]
-                    } else {
-                        bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(x), width(gr)[x]))), function(y) paste(y, collapse='')))
-                        bst[, names:=names(gr)[x]]
-                    }
-
-                    if (any(strand(gr)[x]=='-'))
-                    {
-                        ix.tmp = as.logical(strand(gr)[x]=='-')
-                        if (!as.data.table)
-                            bst[ix.tmp] = Biostrings::complement(bst[ix.tmp])
-                        else
-                            bst$seq[ix.tmp] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix.tmp])))
-                    }
-
-                    if (verbose)
-                        cat('.')
-
-                    return(bst)
-                }
-              , mc.cores = mc.cores)
-
-                if (!as.data.table)
-                {
-                    if (length(mcout)>1)
-                        tmp = c(mcout[[1]], mcout[[2]])
-                    out <- do.call('c', mcout)[order(unlist(ix))]
-                }
-                else
-                    out <- rbindlist(mcout)
-            }
-            else
-            {
-                out = do.call(c, mclapply(ix, function(x)
-                {
-                    if (verbose)
-                        cat('.')
-                    return(getSeq(hg, gr[x]))
-                }
-               ,mc.cores = mc.cores))[order(unlist(ix))]
-                if (verbose)
-                    cat('\n')
-            }
-        }
-        else
-        {
-            if (is(hg, 'ffTrack'))
-            {
-                tmp = suppressWarnings(hg[gr])
-
-                tmp[is.na(tmp)] = 'N'
-
-                if (any(is.na(tmp)))
-                    stop("ffTrack corrupt: has NA values, can't convert to DNAString")
-
-                if (as.data.table) {
-                    bst <- data.table(seq=sapply(split(tmp, as.vector(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse='')))
-                    bst[, names:=names(gr)]
-                } else {
-                    bst = DNAStringSet(sapply(split(tmp, as.numeric(Rle(1:length(gr), width(gr)))), function(x) paste(x, collapse = '')))
-                    names(bst) = names(gr)
-                }
-
-                if (any(as.character(strand(gr))=='-'))
-                {
-                    ix = as.logical(strand(gr)=='-')
-                    if (!as.data.table) {
-                        bstc <- as.character(bst)
-                        bstc[ix] <- as.character(Biostrings::complement(bst[ix]))
-                        bst <- DNAStringSet(bstc)  ## BIZARRE bug with line below
-                                        #bst[ix] = Biostrings::complement(bst[ix])
-                    } else {
-                        bst$seq[ix] <- as.character(Biostrings::complement(DNAStringSet(bst$seq[ix])))
-                    }
-                }
-
-                return(bst)
-            }
-            else
-                out = getSeq(hg, gr)
-        }
-        return(out)
-    }
-}
 
 #' Count bases in cigar string
 #'
@@ -1446,4 +1234,33 @@ get.varcol = function()
     'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
     return(VAR.COL)
   }
+
+
+
+#' is.paired.end
+#'
+#' @description
+#'
+#' Check if bam file is paired end by using 0x1 flag
+#' 
+#' @name is.paired.end
+#' @export
+is.paired.end = function(bams)
+    {
+        out = sapply(bams, function(x)            
+            {
+                if (is.na(x))
+                    return(NA)
+                if (!file.exists(x))
+                    return(NA)
+                out = FALSE                
+                p = pipe(sprintf('samtools view -h  %s | head -n 100 | samtools view -f 0x1 - | wc -l', x))
+                ln = as.numeric(readLines(p))
+                out = ln>0
+                close(p)
+                return(out)                
+            })     
+        return(out)
+    }
+
 
