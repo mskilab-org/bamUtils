@@ -1,6 +1,6 @@
 #' @import GenomicRanges
 #' @import GenomicAlignments
-
+#' @import Rsamtools
 
 #' @name read.bam
 #' @title read.bam
