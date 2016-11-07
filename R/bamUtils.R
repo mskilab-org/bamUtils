@@ -188,7 +188,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             out$strand[unm] = '*'
         }
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
-        vals = out[, setdiff(names(out), gr.fields)]
+        vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
         if (!as.data.table) {
             out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
