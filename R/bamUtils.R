@@ -173,7 +173,8 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             out$cigar[torun] <- new.cigar
         }
         cigs <- countCigar(out$cigar)
-        out$pos2 <- out$pos + cigs[, "M"]
+        # out$pos2 <- out$pos + cigs[, "M"]
+        out$pos2 <- out$pos + rowSums(cigs[, c("D", "M")], na.rm=T)
 
         if (verbose) {
             print(Sys.time() - now)
