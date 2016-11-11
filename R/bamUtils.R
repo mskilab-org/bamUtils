@@ -160,7 +160,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
         }
         if (ignore.indels) {
             cigar <- gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
-            cig <- splitCigar(cigar)
+            cig <- explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
             torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
             M <- charToRaw('M')
             new.cigar <- sapply(cig[torun], function(y) {
@@ -189,7 +189,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             out$strand[unm] = '*'
         }
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
-        vals = out[, setdiff(names(out), gr.fields)]
+        vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
         if (!as.data.table) {
             out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
