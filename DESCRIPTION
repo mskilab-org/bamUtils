@@ -10,7 +10,8 @@ Depends:
     data.table (>= 1.9),
     GenomicRanges,
     GenomicAlignments, 
-    Rsamtools (>= 1.18)
+    Rsamtools (>= 1.18),
+    gUtils
 License: What license is it under?
 LazyData: true
 RoxygenNote: 5.0.1
