@@ -11,4 +11,3 @@ get.varcol()
 simple function storing default
 variant color scheme
 }
-
