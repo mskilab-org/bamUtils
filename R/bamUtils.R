@@ -11,8 +11,8 @@
 #'
 #' Wrapper around Rsamtools bam scanning functions,
 #' by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
-#' @param bam Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bami Input bam index file.
+#' @param bam string Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai sting Input bam index file.
 #' @param gr GRanges of intervals to retrieve
 #' @param intervals GRanges of intervals to retrieve
 #' @param stripstrand Flag to ignore strand information on the query intervals. Default TRUE
@@ -30,20 +30,20 @@
 #' @param as.grl Return reads as GRangesList. Controls whether \code{get.pairs.grl} does split. Default TRUE
 #' @param as.data.table Return reads in the form of a data.table rather than GRanges/GRangesList
 #' @param ignore.indels messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-#' @param size.limit Default 1e6
+#' @param size.limit integer (default=1e6)
 #' @param ... passed to \code{scanBamFlag}
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
 read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     gr = intervals,
                     all = FALSE,
-                    bami = NULL,
-                    pairs.grl = TRUE, # if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
-                                        #  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
-                                        #  gappedAlignment = T, # if false just read alignments using scanbam
+                    bai = NULL,
+                    pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
+                                        ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
+                                        ##  gappedAlignment = T, # if false just read alignments using scanbam
                     stripstrand = TRUE,
                     what = scanBamWhat(),
-                    unpack.flag = FALSE, # will add features corresponding to read flags
+                    unpack.flag = FALSE, ## will add features corresponding to read flags
                     verbose = FALSE,
                     tag = NULL,
                     isPaired = NA, ## if these features are NA, then reads satisfying both T and F will be returned
@@ -51,7 +51,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     isUnmappedQuery = NA,
                     hasUnmappedMate = NA,
                     isNotPassingQualityControls = NA,
-                    isDuplicate = F,
+                    isDuplicate = FALSE,
                     isValidVendorRead = TRUE,
                     as.grl=TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
                     as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
@@ -62,22 +62,23 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 {
     if (!inherits(bam, 'BamFile'))
     {
-        if (is.null(bami))
+        if (is.null(bai))
         {
-            if (file.exists(bai <- gsub('.bam$', '.bai', bam)))
+            if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
                 bam = BamFile(bam, bai)
-            else if (file.exists(bai <- paste(bam, '.bai', sep = '')))
+            }
+            else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
                 bam = BamFile(bam, bai)
-            else
+            }
+            else{
                 bam = BamFile(bam)
+            }
         }
-        else
-            bam = BamFile(bam, index = bami)
+        else{
+            bam = BamFile(bam, index = bai)
+        }
     }
-
-
-                                        # if intervals unspecified will try to pull down entire bam file (CAREFUL)
-
+    ## if intervals unspecified will try to pull down entire bam file (CAREFUL)
     if (length(intervals)==0)
         intervals = NULL
 
@@ -120,7 +121,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
     if (class(bam) == 'BamFile')
         out <- scanBam(bam, param=param)
     else
-        out <- scanBam(bam, index=bami, param=param)
+        out <- scanBam(bam, index=bai, param=param)
     if (verbose) {
         print(Sys.time() - now)
         print('BAM read. Making into data.frame')
@@ -242,13 +243,13 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 #' @title Get coverage as GRanges from BAM on custom set of GRanges
 #' @description
 #'
-#' gets coverage from bam in supplied ranges using "countBam", returning gr with coverage counts in
+#' Gets coverage from bam in supplied ranges using "countBam", returning gr with coverage counts in
 #' each of the provided ranges (different from bam.cov above) specified as $file, $records, and $nucleotides
 #' columns in the values field
 #' basically a wrapper for countBam with some standard settings for ScanBamParams
 #'
 #' @param bam Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bami Input bam index file.
+#' @param bai Input bam index file.
 #' @param gr GRanges of intervals to retrieve
 #' @param verbose Increase verbosity
 #' @param isPaired See documentation for \code{scanBamFlag}. Default NA
@@ -263,11 +264,11 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 #' @param ... passed to \code{scanBamFlag}
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isProperPair = T, isUnmappedQuery = F, hasUnmappedMate = F, isNotPassingQualityControls = F, isDuplicate = F, isValidVendorRead = T, mc.cores = 1, chunksize = 10, verbose = F, ...)
+bam.cov.gr = function(bam, gr, bai = NULL, count.all = FALSE, isPaired = T, isProperPair = T, isUnmappedQuery = F, hasUnmappedMate = F, isNotPassingQualityControls = F, isDuplicate = F, isValidVendorRead = T, mc.cores = 1, chunksize = 10, verbose = F, ...)
 {
     if (is.character(bam))
-        if (!is.null(bami))
-            bam = BamFile(bam, bami)
+        if (!is.null(bai))
+            bam = BamFile(bam, bai)
         else
         {
             if (file.exists(paste(bam, 'bai', sep = '.')))
@@ -313,6 +314,7 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
 #' @name bam.cov.tile
 #' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
 #' @description
+#'
 #' Quick way to get tiled coverage via piping to samtools (~10 CPU-hours for 100bp tiles, 5e8 read pairs)
 #'
 #' Gets coverage for window size "window", pulling "chunksize" records at a time and incrementing bin
