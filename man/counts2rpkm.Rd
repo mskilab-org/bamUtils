@@ -9,11 +9,11 @@ counts2rpkm(counts, by)
 \arguments{
 \item{counts}{GRanges, data.table or data.frame with records, width fields}
 
-\item{by}{Field to group counts by}
+\item{by}{string Field to group counts by}
 }
 \description{
-takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
+Takes 'countbam()'' (or 'bam.cov.gr()') output "counts" and computes rpkm by aggregating across "by" variable
 }
 \note{
-The denominator (ie total reads) is just the sum of counts$records
+The denominator (i.e. total reads) is just the sum of counts$records
 }

@@ -4,17 +4,18 @@
 \alias{bam.cov.gr}
 \title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-bam.cov.gr(bam, gr, bami = NULL, count.all = FALSE, isPaired = T,
-  isProperPair = T, isUnmappedQuery = F, hasUnmappedMate = F,
-  isNotPassingQualityControls = F, isDuplicate = F, isValidVendorRead = T,
-  mc.cores = 1, chunksize = 10, verbose = F, ...)
+bam.cov.gr(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE,
+  isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE,
+  isNotPassingQualityControls = FALSE, isDuplicate = FALSE,
+  isValidVendorRead = TRUE, mc.cores = 1, chunksize = 10,
+  verbose = FALSE, ...)
 }
 \arguments{
-\item{bam}{Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
+\item{bam}{Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
 
 \item{gr}{GRanges of intervals to retrieve}
 
-\item{bami}{Input bam index file.}
+\item{bai}{Input BAM index file.}
 
 \item{isPaired}{See documentation for \code{scanBamFlag}. Default NA}
 
@@ -42,8 +43,9 @@ bam.cov.gr(bam, gr, bami = NULL, count.all = FALSE, isPaired = T,
 GRanges parallel to input GRanges, but with metadata filled in.
 }
 \description{
-gets coverage from bam in supplied ranges using "countBam", returning gr with coverage counts in
-each of the provided ranges (different from bam.cov above) specified as $file, $records, and $nucleotides
-columns in the values field
-basically a wrapper for countBam with some standard settings for ScanBamParams
+Gets coverage from BAM in supplied GRanges using 'countBam()', returning GRanges with coverage counts in
+each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the 
+columns $file, $records, and $nucleotides in the values field
+
+Basically a wrapper for 'Rsamtools::countBam()' with some standard settings for 'Rsamtools::ScanBamParams()'
 }

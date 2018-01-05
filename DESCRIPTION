@@ -11,8 +11,10 @@ Depends:
     GenomicRanges,
     GenomicAlignments, 
     Rsamtools (>= 1.18),
-    gUtils, 
+    gUtils
+Suggests:
     testthat
-License: What license is it under?
+License: GPL-2
+BugReports: http://github.com/mskilab/bamUtils/issues
 LazyData: true
 RoxygenNote: 6.0.1.9000

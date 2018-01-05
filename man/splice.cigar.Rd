@@ -2,38 +2,37 @@
 % Please edit documentation in R/bamUtils.R
 \name{splice.cigar}
 \alias{splice.cigar}
-\title{splice.cigar}
+\title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
 splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
   rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 }
 \arguments{
-\item{reads}{\code{GRanges} reads}
+\item{reads}{Granges input reads}
 
-\item{verbose}{Default TRUE}
+\item{verbose}{boolean verbose flag (default == TRUE)}
 
-\item{fast}{Default TRUE}
+\item{fast}{boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default == TRUE)}
 
-\item{use.D}{Default TRUE}
+\item{use.D}{boolean Treats "D" tags as deletions, along with "N" tags (default == TRUE)}
 
-\item{rem.soft}{Default TRUE}
+\item{rem.soft}{boolean Pick up splice 'S', soft-clipped (default == TRUE)}
 
-\item{get.seq}{Default FALSE}
+\item{get.seq}{boolean Get InDels (default == TRUE)}
 
-\item{return.grl}{Default TRUE}
+\item{return.grl}{boolean Return as GRangesList (default == TRUE)}
 }
 \description{
-takes gr or gappedalignment object "reads" and parses cigar fields
-to return grl corresponding to spliced alignments on the genome corresponding to
-portions of the cigar
-}
-\details{
-ie each outputted grl item contains the granges corresponding to all non-N portions of cigar string
+Takes GRanges or gapped alignment object "reads" and parses cigar fields
+to return GRanges or GRangesList corresponding to spliced alignments on the genome, which 
+correspond to portions of the cigar
 
-if grl provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
-input grl item will be put into the corresponding output grl item
+i.e. each outputted GRanges/GRangesList element contains the granges corresponding to all non-N portions of cigar string
+
+if GRangesList provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
+input GRangesList element will be put into the corresponding output GRangesList element
 
 NOTE: does not update MD tag
 
-if use.D = TRUE, then will treat "D" (deletion) in addition to "N" flags as indicative of deletion event.
+if use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
 }

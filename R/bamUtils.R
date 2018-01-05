@@ -4,15 +4,14 @@
 #' @import gUtils
 
 #' @name read.bam
-#' @title read.bam
+#' @title Read BAM file into GRanges or data.table
 #' @description 
-#' 
-#' Read BAM file into GRanges or data.table
 #'
-#' Wrapper around Rsamtools bam scanning functions,
-#' by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
-#' @param bam Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bami Input bam index file.
+#' Wrapper around Rsamtools BAM scanning functions
+#' By default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
+#' 
+#' @param bam Input BAM file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai Input BAM index file.
 #' @param gr GRanges of intervals to retrieve
 #' @param intervals GRanges of intervals to retrieve
 #' @param stripstrand Flag to ignore strand information on the query intervals. Default TRUE
@@ -34,13 +33,13 @@
 #' @param ... passed to \code{scanBamFlag}
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
-read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
+read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
                     gr = intervals,
                     all = FALSE,
-                    bami = NULL,
-                    pairs.grl = TRUE, # if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
-                                        #  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
-                                        #  gappedAlignment = T, # if false just read alignments using scanbam
+                    bai = NULL,
+                    pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
+                                        ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
+                                        ##  gappedAlignment = T, # if false just read alignments using scanbam
                     stripstrand = TRUE,
                     what = scanBamWhat(),
                     unpack.flag = FALSE, # will add features corresponding to read flags
@@ -51,18 +50,18 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     isUnmappedQuery = NA,
                     hasUnmappedMate = NA,
                     isNotPassingQualityControls = NA,
-                    isDuplicate = F,
+                    isDuplicate = FALSE,
                     isValidVendorRead = TRUE,
-                    as.grl=TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
+                    as.grl=TRUE,   ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
                     as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
                     ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
                     size.limit = 1e6,
-                    ... # passed to scanBamFlag (
+                    ... ## passed to scanBamFlag (
                     )
 {
     if (!inherits(bam, 'BamFile'))
     {
-        if (is.null(bami))
+        if (is.null(bai))
         {
             if (file.exists(bai <- gsub('.bam$', '.bai', bam)))
                 bam = BamFile(bam, bai)
@@ -72,41 +71,47 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                 bam = BamFile(bam)
         }
         else
-            bam = BamFile(bam, index = bami)
+            bam = BamFile(bam, index = bai)
+    }
+    ## if intervals unspecified will try to pull down entire BAM file (CAREFUL)
+
+    if (length(intervals)==0){
+        intervals = NULL
     }
 
-
-                                        # if intervals unspecified will try to pull down entire bam file (CAREFUL)
-
-    if (length(intervals)==0)
-        intervals = NULL
-
-    if (is.null(intervals))
+    if (is.null(intervals)){
         intervals = gr
+    }
 
     if (is.null(intervals))
     {
-        if (all)
+        if (all){
             intervals = si2gr(seqinfo(bam))
-        else
-            stop('Must provide non empty interval list')
+        }
+        else{
+            stop('Must provide non-empty interval list')
+        }
     }
 
-    if (class(intervals) == 'data.frame')
+    if (class(intervals) == 'data.frame'){
         intervals = seg2gr(intervals);
+    }
 
-    if (inherits(intervals, 'GRangesList'))
+    if (inherits(intervals, 'GRangesList')){
         intervals = unlist(intervals);
+    }
 
-    if (stripstrand)
+    if (stripstrand){
         strand(intervals) = '*'
+    }
 
     intervals = reduce(intervals);
 
     now = Sys.time();
 
-    if (pairs.grl)
-        paired = F
+    if (pairs.grl){
+        paired = FALSE
+    }
 
     flag = scanBamFlag(isPaired = isPaired, isProperPair = isProperPair, isUnmappedQuery = isUnmappedQuery,
                        hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
@@ -115,75 +120,80 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
     tag = unique(c('MD', 'MQ', tag))
     param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
-    if (verbose)
-        cat('Reading bam file\n')
-    if (class(bam) == 'BamFile')
-        out <- scanBam(bam, param=param)
-    else
-        out <- scanBam(bam, index=bami, param=param)
-    if (verbose) {
+    if (verbose){
+        cat('Reading BAM file\n')
+    }
+    if (class(bam) == 'BamFile'){
+        out = scanBam(bam, param=param)
+    }
+    else{
+        out = scanBam(bam, index=bai, param=param)
+    }
+    if (verbose){
         print(Sys.time() - now)
-        print('BAM read. Making into data.frame')
+        print('BAM now read. Converting into data.frame')
     }
 
-    out <- out[sapply(out, function(x) length(x$qname)>0)]
+    out = out[sapply(out, function(x) length(x$qname)>0)]
 
-    if (length(out)>0)
-    {
-        if (verbose) {
+    if (length(out) > 0){
+        if (verbose){
             print(Sys.time() - now)
-            print('combining lists')
+            print('Combining lists')
         }
-        out <- as.data.frame(rbindlist(lapply(out, function(x)
+        out = as.data.frame(rbindlist(lapply(out, function(x)
         {
-            x <- c(x[-match('tag', names(x))], x$tag)
+            x = c(x[-match('tag', names(x))], x$tag)
 
-            x <- x[sapply(x, length)>0]
-            conv <- which(!(sapply(x, class) %in% c('integer', 'numeric', 'character')))
-            x[conv] <- lapply(x[conv], as.character)
+            x = x[sapply(x, length)>0]
+            conv = which(!(sapply(x, class) %in% c('integer', 'numeric', 'character')))
+            x[conv] = lapply(x[conv], as.character)
 
-            for (t in tag)
-                if (!(t %in% names(x)))
+            for (t in tag){
+                if (!(t %in% names(x))){
                     x[[t]] = rep(NA, length(x$qname))
+                }
+            }
 
-            if (!('R2' %in% names(x)) && 'R2' %in% tag)
+            if (!('R2' %in% names(x)) && 'R2' %in% tag){
                 x$R2 <- rep(NA, length(x$qname))
-            if (!('Q2' %in% names(x)) && 'Q2' %in% tag)
+            }
+            if (!('Q2' %in% names(x)) && 'Q2' %in% tag){
                 x$Q2 <- rep(NA, length(x$qname))
-            x
+            }
+            return(x)
         })))
 
         ## faster CIGAR string parsing with vectorization and data tables
         if (verbose) {
             print(Sys.time() - now)
-            print('filling pos2 from cigar')
+            print('Filling pos2 from cigar')
         }
-        if (ignore.indels) {
-            cigar <- gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
-            cig <- explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
-            torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
-            M <- charToRaw('M')
-            new.cigar <- sapply(cig[torun], function(y) {
-                lets <- y[[1]][!duplicated(y[[1]])]
-                vals <- y[[2]][!duplicated(y[[1]])]
-                vals[lets==M] <- sum(y[[2]][y[[1]]==M])
-                lets <- strsplit(rawToChar(lets), '')[[1]]
+        if (ignore.indels){
+            cigar = gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
+            cig =  explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
+            torun = sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
+            M = charToRaw('M')
+            new.cigar = sapply(cig[torun], function(y) {
+                lets = y[[1]][!duplicated(y[[1]])]
+                vals = y[[2]][!duplicated(y[[1]])]
+                vals[lets==M] = sum(y[[2]][y[[1]]==M])
+                lets = strsplit(rawToChar(lets), '')[[1]]
                 paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
             })
-            out$cigar[torun] <- new.cigar
+            out$cigar[torun] = new.cigar
         }
-        cigs <- countCigar(out$cigar)
-        # out$pos2 <- out$pos + cigs[, "M"]
-        out$pos2 <- out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
+        cigs = countCigar(out$cigar)
+        ## out$pos2 <- out$pos + cigs[, "M"]
+        out$pos2 = out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
 
-        if (verbose) {
+        if (verbose){
             print(Sys.time() - now)
-            print('fixing seqdata')
+            print('Fixing seqdata')
         }
         out$qwidth = nchar(out$seq)
         unm = is.na(out$pos)
-        if (any(unm))
-        {
+        if (any(unm)){
             out$pos[unm] = 1
             out$pos2[unm] = 0
             out$strand[unm] = '*'
@@ -191,64 +201,69 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
         vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
-        if (!as.data.table) {
-            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
-            values(out) <- vals;
-        } else {
+        if (!as.data.table){
+            out = GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
+            values(out) = vals;
+        }
+        else{
             out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
-                                        #out$uname = paste(out$qname, ifelse(bamflag(out$flag)[, 'isFirstMateRead'], '_r1', '_r2'), sep = '')
+    ## out$name = paste(out$qname, ifelse(bamflag(out$flag)[, 'isFirstMateRead'], '_r1', '_r2'), sep = '')
     }
     else {
-        if (!as.data.table)
+        if (!as.data.table){
             return(GRanges(seqlengths = seqlengths(intervals)))
-        else
-            return(data.table())
-    }
-
-    if (verbose)
-    {
-        if (as.data.table)
-            cat(sprintf('Extracted %s reads\n', nrow(out)))
-        else
-            cat(sprintf('Extracted %s reads\n', length(out)))
-        print(Sys.time() - now)
-    }
-
-    if (pairs.grl)
-    {
-        if (verbose)
-            cat('Pairing reads\n')
-        out <- get.pairs.grl(out, as.grl=as.grl)
-        if (verbose)
-        {
-            cat('done\n')
-            print(Sys.time() - now)
         }
-        if (as.grl && !as.data.table) {
+        else{
+            return(data.table())
+        }
+    }
+
+    if (verbose){
+        if (as.data.table){
+            cat(sprintf('Extracted %s reads\n', nrow(out)))
+        }
+        else{
+            cat(sprintf('Extracted %s reads\n', length(out)))
+        }
+        print(paste0('Total time to complete: ', Sys.time() - now))
+    }
+
+    if (pairs.grl){
+        if (verbose){
+            cat('Pairing reads\n')
+        }
+        out = get.pairs.grl(out, as.grl=as.grl)
+        if (verbose){
+            cat('done\n')
+            print(paste0('Total time to complete: ', Sys.time() - now))
+        }
+        if (as.grl && !as.data.table){
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
         }
     }
-
     return(out)
 }
+
+
 
 
 #' @name bam.cov.gr
 #' @title Get coverage as GRanges from BAM on custom set of GRanges
 #' @description
 #'
-#' gets coverage from bam in supplied ranges using "countBam", returning gr with coverage counts in
-#' each of the provided ranges (different from bam.cov above) specified as $file, $records, and $nucleotides
-#' columns in the values field
-#' basically a wrapper for countBam with some standard settings for ScanBamParams
+#' Gets coverage from BAM in supplied GRanges using 'countBam()', returning GRanges with coverage counts in
+#' each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the 
+#' columns $file, $records, and $nucleotides in the values field
 #'
-#' @param bam Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bami Input bam index file.
+#' Basically a wrapper for 'Rsamtools::countBam()' with some standard settings for 'Rsamtools::ScanBamParams()'
+#'
+#' @param bam Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai Input BAM index file.
 #' @param gr GRanges of intervals to retrieve
 #' @param verbose Increase verbosity
 #' @param isPaired See documentation for \code{scanBamFlag}. Default NA
@@ -263,11 +278,11 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 #' @param ... passed to \code{scanBamFlag}
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isProperPair = T, isUnmappedQuery = F, hasUnmappedMate = F, isNotPassingQualityControls = F, isDuplicate = F, isValidVendorRead = T, mc.cores = 1, chunksize = 10, verbose = F, ...)
+bam.cov.gr = function(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, isValidVendorRead = TRUE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
     if (is.character(bam))
-        if (!is.null(bami))
-            bam = BamFile(bam, bami)
+        if (!is.null(bai))
+            bam = BamFile(bam, bai)
         else
         {
             if (file.exists(paste(bam, 'bai', sep = '.')))
@@ -275,7 +290,7 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
             else if (file.exists(gsub('.bam$', '.bai', bam)))
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
             else
-                stop('BAM index not found, please find index and specify bam file argument as valid BamFile object')
+                stop('BAM index not found, please find index and specify BAM file argument as valid BamFile object')
         }
 
     keep = which(as.character(seqnames(gr)) %in% seqlevels(bam))
@@ -310,9 +325,13 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
     return(gr)
 }
 
+
+
+
 #' @name bam.cov.tile
 #' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
 #' @description
+#'
 #' Quick way to get tiled coverage via piping to samtools (~10 CPU-hours for 100bp tiles, 5e8 read pairs)
 #'
 #' Gets coverage for window size "window", pulling "chunksize" records at a time and incrementing bin
@@ -445,63 +464,83 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     return(gr)
 }
 
-#' Compute rpkm counts from counts
+
+
+
+#' @name counts2rpkm
+#' @title Compute rpkm counts from counts
+#' @description
 #'
-#' takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
+#' Takes 'countbam()'' (or 'bam.cov.gr()') output "counts" and computes rpkm by aggregating across "by" variable
+#'
 #' @param counts GRanges, data.table or data.frame with records, width fields
-#' @param by Field to group counts by
-#' @note The denominator (ie total reads) is just the sum of counts$records
+#' @param by string Field to group counts by
+#' @note The denominator (i.e. total reads) is just the sum of counts$records
+#' @return
 #' @export
 counts2rpkm = function(counts, by)
 {
-    out = aggregate(1:nrow(counts), by = list(by), FUN = function(x) sum(counts$records[x])/ sum(counts$width[x]/1000));
-    out[,2] = out[,2]/sum(counts$records)*1e6;
-    names(out) = c('by', 'rpkm');
-    return(out);
+    out = aggregate(1:nrow(counts), by = list(by), FUN = function(x) sum(counts$records[x])/ sum(counts$width[x]/1000))
+    out[,2] = out[,2] / sum(counts$records) * 1e6
+    names(out) = c('by', 'rpkm')
+    return(out)
 }
 
-#' Takes reads object and returns grl with each read and its mate (if exists)
-#'
-#' @param reads \code{GRanges} holding reads
-#' @param as.grl Default TRUE. Return as a \code{GRangesList}
-#' @param verbose Default FALSE
+
+
+
 #' @name get.pairs.grl
+#' @title Get coverage as GRanges from BAM on custom set of GRanges
+#' @description
+#'
+#' Takes reads object and returns GRangesList with each read and its mate (if exists)
+#'
+#' @param reads GRanges holding reads
+#' @param as.grl boolean returns as GRangesList if TRUE (default == TRUE)
+#' @param verbose boolean verbose flag (default == FALSE)
 #' @export
-get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
+get.pairs.grl = function(reads, as.grl = TRUE, verbose = FALSE)
 {
 
-    isdt <- inherits(reads, 'data.table')
+    isdt = inherits(reads, 'data.table')
 
     bad.col = c("seqnames", "ranges", "strand", "seqlevels",
                 "seqlengths", "isCircular", "genome", "start", "end", "width", "element")
 
-    if (verbose)
+    if (verbose){
         cat('deduping\n')
+    }
 
-    if (is(reads, 'GappedAlignmentPairs'))
+    if (is(reads, 'GappedAlignmentPairs')){
         reads = unlist(reads)
+    }
 
     if (inherits(reads, 'GRanges')) {
-        d <- duplicated(values(reads)$qname) ## duplicates are already paired up
+        d = duplicated(values(reads)$qname) ## duplicates are already paired up
         qpair.ix <- values(reads)$qname %in% unique(values(reads)$qname[d])
-    } else if (isdt) {
-        d <- duplicated(reads$qname)
-        qpair.ix <- reads$qname %in% unique(reads$qname[d])
+    } 
+    else if (isdt){
+        d = duplicated(reads$qname)
+        qpair.ix = reads$qname %in% unique(reads$qname[d])
     }
 
     if (!inherits(reads, 'GenomicRanges') && !inherits(reads, 'data.table'))
     {
-        if (verbose)
+        if (verbose){
             cat('converting to granges\n')
+        }
         r.gr = granges(reads)
     }
-    else if (!isdt)
+    else if (!isdt){
         r.gr = reads[, c()]
-    else
-        r.gr <- reads
+    }
+    else{
+        r.gr = reads
+    }
 
-    if (verbose)
+    if (verbose){
         cat('grbinding\n')
+    }
 
     m.gr = get.mate.gr(reads[!qpair.ix]);
 
@@ -510,44 +549,55 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
         mcols(r.gr) <- rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
-    } else if (isdt) {
+    } 
+    else if (isdt) {
         m.gr <- m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with=FALSE]
         r.gr <- rbind(reads, m.gr, use.names=TRUE)
         setkey(r.gr, qname)
     }
 
     if (as.grl && !isdt) {
-        if (verbose)
+        if (verbose){
             cat('splitting\n')
+        }
         return(split(r.gr, as.character(r.gr$qname)))
-    } else {
+    } 
+    else {
         return(r.gr)
     }
 }
 
-#' count.clips
+
+
+
+#' @name count.clips
+#' @title Return data.frame with fields of "right" soft clips and "left" soft clips
+#' @description
 #'
-#' takes gr or gappedalignment object and uses cigar field (or takes character vector of cigar strings)
-#' and returns data frame with fields (for character input)
-#' $right.clips number of "right" soft clips (eg cigar 89M12S)
-#' #left.clips number of "left" soft clips (eg cigar 12S89M)
+#' Takes GRanges or gapped alignment object and uses cigar field (or takes character vector of cigar strings)
+#' and returns data.frame with fields (for character input)
+#' $right.clips number of "right" soft clips (e.g. cigar 89M12S)
+#' $left.clips number of "left" soft clips (e.g. cigar 12S89M), 
 #' or appends these fields to the reads object
 #'
 #' @param reads GenomicRanges holding the reads
-#' @param hard [Default TRUE] option counts hard clips
-#' @name count.clips
+#' @param hard boolean Option counts hard clips (default == FALSE)
 #' @export
 count.clips = function(reads, hard = FALSE)
 {
-    if (length(reads) == 0)
+    if (length(reads) == 0){
         return(reads)
-    if (inherits(reads, 'GRanges') | inherits(reads, 'GappedAlignments'))
+    }
+    if (inherits(reads, 'GRanges') | inherits(reads, 'GappedAlignments')){
         cigar = values(reads)$cigar
-    else
-        cigar = reads;
+    }
+    else{
+        cigar = reads
+    }
 
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'factor'))
+    if (!inherits(cigar, 'character') & !inherits(cigar, 'factor')){
         stop('Input must be GRanges, GappedAlignments, or character vector')
+    }
 
     out = data.frame(left.clips = rep(0, length(cigar)), right.clips = rep(0, length(cigar)));
 
@@ -557,20 +607,17 @@ count.clips = function(reads, hard = FALSE)
     lclip.ix = grep(re.left, cigar)
     rclip.ix = grep(re.right, cigar)
 
-    if (length(lclip.ix)>0)
-    {
+    if (length(lclip.ix)>0){
         left.clips = gsub(re.left, '\\1', cigar[lclip.ix])
         out$left.clips[lclip.ix] = as.numeric(left.clips)
     }
 
-    if (length(rclip.ix)>0)
-    {
+    if (length(rclip.ix)>0){
         right.clips = gsub(re.right, '\\1', cigar[rclip.ix])
         out$right.clips[rclip.ix] = as.numeric(right.clips)
     }
 
-    if (inherits(reads, 'GRanges') | inherits(reads, 'GappedAlignments'))
-    {
+    if (inherits(reads, 'GRanges') | inherits(reads, 'GappedAlignments')){
         values(reads)$right.clips = out$right.clips
         values(reads)$left.clips = out$left.clips
         out = reads
@@ -581,26 +628,31 @@ count.clips = function(reads, hard = FALSE)
 
 
 
-#' varbase
+
+#' @name varbase
+#' @title Returns variant bases and ranges from GRanges or gapped alignment input
+#' @description
 #'
-#' takes gr or gappedalignment object "reads" and uses cigar, MD, seq fields
+#' Takes GRanges or gapped alignment object "reads" and uses cigar, MD, seq fields
 #' to return variant bases and ranges
 #'
-#' returns grl (of same length as input) of variant base positions with character vector $varbase field populated with variant bases
-#' for each gr item in grl[[k]], with the following handling for insertions, deletions, and substitution gr's:
+#' Teturns GRangesList (of same length as input) of variant base positions with character vector 
+#' $varbase field populated with variant bases for each GRanges item in grl[[k]], 
+#' with the following handling for insertions, deletions, and substitution GRange's:
 #'
-#' substitutions: nchar(gr$varbase) = width(gr) of the corresponding var
-#' insertions: nchar(gr$varbase)>=1, width(gr) ==0
-#' deletions: gr$varbase = '', width(gr)>=1
+#' Substitutions: nchar(gr$varbase) = width(gr) of the corresponding var
+#' Insertions: nchar(gr$varbase)>=1, width(gr) ==0
+#' Deletions: gr$varbase = '', width(gr)>=1
 #'
-#' Each gr also has $type flag which shows the cigar string code for the event ie
+#' Each GRanges also has $type flag which shows the cigar string code for the event i.e.
 #' S = soft clip --> varbase represents clipped bases
 #' I = insertion --> varbase represents inserted bases
 #' D = deletion --> varbase is empty
 #' X = mismatch --> varbase represents mismatched bases
+#'
 #' @param reads GenomicRanges to extract variants from
-#' @param soft [Default TRUE]
-#' @param verbose [Default TRUE]
+#' @param soft boolean Flag to include soft-clipped matches (default == TRUE)
+#' @param verbose boolean verbose flag (default == TRUE)
 #' @name varbase
 #' @export
 varbase = function(reads, soft = TRUE, verbose = TRUE)
@@ -624,15 +676,9 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         was.grl = FALSE
     }
 
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame'))
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame')){
         stop('Reads must be either GRanges, GRangesList, or GappedAlignment object')
-    else if (inherits(reads, 'data.frame'))
-    {
-#        if (is.null(reads$cigar) | is.null(reads$seq))
-#            stop('Reads must have cigar and seq fields specified')
     }
- #   else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
- #       stop('Reads must have cigar and seq fields specified')
 
     if (is.data.frame(reads))
     {
@@ -642,10 +688,12 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         seq = as.character(reads$seq)
         str = reads$strand
 
-        if (!is.null(reads$MD))
+        if (!is.null(reads$MD)){
             md = as.character(reads$MD)
-        else
+        }
+        else{
             md = rep(NA, length(cigar))
+        }
     }
     else
     {
@@ -655,19 +703,23 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         seq = as.character(values(reads)$seq)
         str = as.character(strand(reads))
 
-        if (!is.null(values(reads)$MD))
+        if (!is.null(values(reads)$MD)){
             md = as.character(values(reads)$MD)
-        else
+        }
+        else{
             md = rep(NA, length(cigar))
+        }
     }
 
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character'))
+    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
         stop('Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object')
+    }
 
     ix = which(!is.na(cigar))
 
-    if (length(ix)==0)
+    if (length(ix)==0){
         return(rep(GRangesList(GRanges()), nreads))
+    }
 
     cigar = cigar[ix]
     seq = seq[ix]
@@ -688,34 +740,33 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     flip = str == '-'
 
     if (!is.null(seq))
-        {
-            nix = sapply(seq, function(x) all(is.na(x)))
-            if (any(nix))
-                seq[nix] = ''
-            seq = strsplit(seq, '')
+    {
+        nix = sapply(seq, function(x) all(is.na(x)))
+        if (any(nix)){
+            seq[nix] = ''
         }
+        seq = strsplit(seq, '')
+    }
 
     cigar.vals = explodeCigarOps(cigar)
     cigar.lens = explodeCigarOpLengths(cigar)
-    
-    ## cigar.vals = lapply(strsplit(cigar, "\\d+"), function(x) x[2:length(x)])
-    ## cigar.lens = lapply(strsplit(cigar, "[A-Z]"), as.numeric)
 
     clip.left = sapply(cigar.vals, function(x) x[1] %in% c('H', 'S'))
     clip.right = sapply(cigar.vals, function(x) x[length(x)] %in% c('H', 'S'))
 
-    if (any(clip.left))
+    if (any(clip.left)){
         r.start[clip.left] = r.start[clip.left]-sapply(cigar.lens[which(clip.left)], function(x) x[1])
+    }
 
-    if (any(clip.right))
+    if (any(clip.right)){
         r.end[clip.right] = r.end[clip.right]+sapply(cigar.lens[which(clip.right)], function(x) x[length(x)])
+    ## split md string into chars after removing "deletion" signatures and also
+    ## any soft clipped base calls (bases followed by a 0)
+    }
 
-                                        # split md string into chars after removing "deletion" signatures and also
-                                        # any soft clipped base calls (bases followed by a 0)
-    ##    md.vals = strsplit(gsub('([ATGCN])', '|\\1|', gsub('\\^[ATGCN]+', '|', md)), '\\|')
     md.vals = strsplit(gsub('([A-Z])', '|\\1|', gsub('\\^[A-Z]+', '|', md)), '\\|')
 
-                                        # ranges of different cigar elements relative to query ie read-centric coordinates
+    ## ranges of different cigar elements relative to query ie read-centric coordinates
     starts.seq = lapply(1:length(cigar.lens), function(i)
     {
         x = c(0, cigar.lens[[i]])
@@ -730,10 +781,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         cumsum(x)
     })
 
-
-
-
-                                        # ranges of different cigar elements relative to reference coordinatse
+    ## ranges of different cigar elements relative to reference coordinatse
     starts.ref = lapply(1:length(cigar.lens), function(i)
     {
         x = c(0, cigar.lens[[i]]);
@@ -747,17 +795,16 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         x[which(cigar.vals[[i]] %in% c('I'))] = 0
         cumsum(x) + r.start[i] - 1
     })
-
-                                        # now using MD find coordinates of mismatched bases (using starts and ends of M regions)
-
-                                        # find coords of subs on genome
+    ## now using MD find coordinates of mismatched bases (using starts and ends of M regions)
+    ## find coords of subs on genome
     tmp.pos = lapply(1:length(md.vals), function(i)
     {
         x = md.vals[[i]]
-                                        #        nix = grepl('[ATGCN]', x);
+        ##        nix = grepl('[ATGCN]', x);
         nix = grepl('[A-Z]', x);
-        if (!any(nix))
+        if (!any(nix)){
             return(c())
+        }
         p = rep(0, length(x))
         p[!nix] = as.numeric(x[!nix])
         p[nix] = 1
@@ -771,9 +818,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         {
             j = 0;
             done = FALSE
-            for (j in 0:(length(m.st)-1))
-                if (s.pos.m[ii] < m.st[j+1])
+            for (j in 0:(length(m.st)-1)){
+                if (s.pos.m[ii] < m.st[j+1]){
                     break
+                }
+            }
             s.match[ii] = j
         }
 
@@ -784,32 +833,32 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     })
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
-    if (is.null(seq))
+    if (is.null(seq)){
         subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCN]', value = T), function(x) rep('X', length(x))) ## replace with N
-    else        
+    }
+    else{
         subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
-
-
-                                        # make sure md and cigar are consistent
-                                        # (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
-                                        # also some MD are NA
+    }        
+    ## make sure MD and cigar are consistent
+    ## (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
+    ## also some MD are NA
     mlen.cigar = sapply(1:length(ends.seq), function(x) {mix = cigar.vals[[x]]=='M'; sum(ends.seq[[x]][mix]-starts.seq[[x]][mix]+1)})
                                         #    mlen.md = sapply(md.vals, function(x) {ix = grepl('[ATGCN]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
     mlen.md = sapply(md.vals, function(x) {ix = grepl('[A-Z]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
     good.md = which(!is.na(md))
-                                        #  good.md = which(mlen.md == mlen.cigar & !is.na(md))
+    ##  good.md = which(mlen.md == mlen.cigar & !is.na(md))
 
     if (any(na <- is.na(md)))
     {
         warning('MD field absent from one or more input reads')
         good.md = which(!na)
     }
-
-                                        # now make granges of subs
+    ## now make granges of subs
     if (length(good.md)>0)
     {
-        if (any(mlen.md[good.md] != mlen.cigar[good.md]))
+        if (any(mlen.md[good.md] != mlen.cigar[good.md])){
             warning('the lengths of some MD strings do not match the number of M positions on the corresponding CIGAR string: some variants may not be correctly mapped to the genome')
+        }
 
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
@@ -822,11 +871,13 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
             values(subs.gr)$type = 'X'
             values(subs.gr)$iix = ix[iix.md]
         }
-        else
+        else{
             subs.gr = GRanges()
+        }
     }
-    else
+    else{
         subs.gr = GRanges()
+    }
 
     iix = unlist(lapply(1:length(cigar.vals), function(x) rep(x, length(cigar.vals[[x]]))))
     cigar.vals = unlist(cigar.vals)
@@ -845,7 +896,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     ends.ref = ends.ref[is.var]
     starts.seq = starts.seq[is.var]
     ends.seq = ends.seq[is.var]
-    str <- str[iix] # JEREMIAH
+    str <- str[iix] 
 
     if (length(cigar.vals)>0)
         {
@@ -867,11 +918,12 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         values(other.gr)$iix = ix[iix];
         out.gr = sort(c(subs.gr, other.gr))
     }
-    else
+    else{
         out.gr = subs.gr
-    
-                                        # add default colors to out.gr
-    VAR.COL = get.varcol()
+    }
+    ## add default colors to out.gr
+    VAR.COL = c('XA' = 'green', 'XG' = 'brown', 'XC' = 'blue', 'XT' = 'red', 'D' = 'white', 
+    'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
 
     col.sig = as.character(out.gr$type)
     xix = out.gr$type == 'X'
@@ -879,9 +931,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     out.gr$col = VAR.COL[col.sig]
     out.gr$border = out.gr$col
 
-    if (!soft)
-        if (any(soft.ix <<- out.gr$type %in% c('H', 'S')))
+    if (!soft){
+        if (any(soft.ix <<- out.gr$type %in% c('H', 'S'))){
             out.gr = out.gr[-which(soft.ix)]
+        }
+    }
 
     out.grl = rep(GRangesList(GRanges()), nreads)
     out.iix = r.id[values(out.gr)$iix]
@@ -894,99 +948,112 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     return(out.grl)
 }
 
-#' splice.cigar
+
+
+
+#' @name splice.cigar
+#' @title Get coverage as GRanges from BAM on custom set of GRanges
+#' @description
 #'
-#' takes gr or gappedalignment object "reads" and parses cigar fields
-#' to return grl corresponding to spliced alignments on the genome corresponding to
-#' portions of the cigar
+#' Takes GRanges or gapped alignment object "reads" and parses cigar fields
+#' to return GRanges or GRangesList corresponding to spliced alignments on the genome, which 
+#' correspond to portions of the cigar
 #'
-#' ie each outputted grl item contains the granges corresponding to all non-N portions of cigar string
+#' i.e. each outputted GRanges/GRangesList element contains the granges corresponding to all non-N portions of cigar string
 #'
-#' if grl provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
-#' input grl item will be put into the corresponding output grl item
+#' if GRangesList provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
+#' input GRangesList element will be put into the corresponding output GRangesList element
 #'
 #' NOTE: does not update MD tag
 #'
-#' if use.D = TRUE, then will treat "D" (deletion) in addition to "N" flags as indicative of deletion event.
-#' @param reads \code{GRanges} reads
-#' @param verbose Default TRUE
-#' @param fast Default TRUE
-#' @param use.D Default TRUE
-#' @param rem.soft Default TRUE
-#' @param get.seq Default FALSE
-#' @param return.grl Default TRUE
-#' @name splice.cigar
+#' if use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
+#'
+#' @param reads Granges input reads
+#' @param verbose boolean verbose flag (default == TRUE)
+#' @param fast boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default == TRUE)
+#' @param use.D boolean Treats "D" tags as deletions, along with "N" tags (default == TRUE)
+#' @param rem.soft boolean Pick up splice 'S', soft-clipped (default == TRUE)
+#' @param get.seq boolean Get InDels (default == TRUE)
+#' @param return.grl boolean Return as GRangesList (default == TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
     nreads = length(reads)
 
-    if (nreads==0)
-        if (return.grl)
+    if (nreads==0){
+        if (return.grl){
             return(GRangesList())
-        else
+        }
+        else{
             return(GRanges)
+        }
+    }
 
-    if (inherits(reads, 'GRangesList'))
-    {
+    if (inherits(reads, 'GRangesList')){
         was.grl = TRUE
         r.id = as.data.frame(reads)$element
         reads = unlist(reads)
     }
-    else
-    {
+    else{
         r.id = 1:length(reads)
         was.grl = FALSE
     }
 
 
-    if (is.data.frame(reads))
-    {
+    if (is.data.frame(reads)){
         sl = NULL
         sn =  reads$seqnames
         cigar = as.character(reads$cigar)
         seq = as.character(reads$seq)
         str = reads$strand
 
-        if (!is.null(reads$MD))
+        if (!is.null(reads$MD)){
             md = as.character(reads$MD)
-        else
+        }
+        else{
             md = rep(NA, length(cigar))
+        }
     }
-    else
-    {
+    else{
         sl = seqlengths(reads)
         sn =  seqnames(reads)
         cigar = as.character(values(reads)$cigar)
         seq = as.character(values(reads)$seq)
         str = as.character(strand(reads))
 
-        if (!is.null(values(reads)$MD))
+        if (!is.null(values(reads)$MD)){
             md = as.character(values(reads)$MD)
-        else
+        }
+        else{
             md = rep(NA, length(cigar))
+        }
     }
 
 
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame'))
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame')){
         stop('Reads must be either GRanges, GRangesList, or GappedAlignment object')
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq))
+    }
+    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
         stop('Reads must have cigar and seq fields specified')
+    }
 
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character'))
+    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
         stop('Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object')
+    }
 
 
     ix = which(!is.na(reads$cigar))
 
-    if (length(ix)==0)
-        if (return.grl)
+    if (length(ix)==0){
+        if (return.grl){
             return(rep(GRangesList(GRanges()), nreads))
-        else
+        }
+        else{
             return(GRanges())
+        }       
+    }
 
-    if (fast)
-    {
+    if (fast){
         ir = cigarRangesAlongReferenceSpace(reads[ix]$cigar, N.regions.removed = FALSE, with.ops = TRUE, reduce.ranges = FALSE)
         irul = unlist(ir)
         out.gr = GRanges(rep(seqnames(reads)[ix], elementLengths(ir)), shift(IRanges(irul), rep(start(reads)[ix]-1, elementLengths(ir))),
@@ -997,29 +1064,26 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         out.gr$fid = r.id[out.gr$rid]
         out.gr$qname = reads$qname[out.gr$rid]
 
-        if (return.grl)
-        {
+        if (return.grl){
             out.grl = rep(GRangesList(GRanges()), nreads)
             tmp.grl = split(out.gr, out.gr$fid)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
         }
-        else
+        else{
             return(out.gr)
+        }
     }
-    else
-    {
+    else{
 
         cigar = cigar[ix]
         str = str[ix]
 
-        if (is.data.frame(reads))
-        {
+        if (is.data.frame(reads)){
             r.start = reads$start[ix]
             r.end = reads$end[ix]
         }
-        else
-        {
+        else{
             r.start = start(reads)[ix]
             r.end = end(reads)[ix];
         }
@@ -1032,30 +1096,26 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         clip.right = sapply(cigar.vals, function(x) x[length(x)] == 'S')
 
                                         # ranges of different cigar elements relative to query ie read-centric coordinates
-        starts.seq = lapply(1:length(cigar.lens), function(i)
-        {
+        starts.seq = lapply(1:length(cigar.lens), function(i){
             x = c(0, cigar.lens[[i]])
             x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))+1] = 0  ## deletions have 0 width on query
             cumsum(x[1:(length(x)-1)])+1
         })
 
-        ends.seq = lapply(1:length(cigar.lens), function(i)
-        {
+        ends.seq = lapply(1:length(cigar.lens), function(i){
             x = cigar.lens[[i]];
             x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))] = 0
             cumsum(x)
         })
 
-                                        # ranges of different cigar elements relative to reference coordinatse
-        starts.ref = lapply(1:length(cigar.lens), function(i)
-        {
+        ## ranges of different cigar elements relative to reference coordinatse
+        starts.ref = lapply(1:length(cigar.lens), function(i){
             x = c(0, cigar.lens[[i]]);
             x[which(cigar.vals[[i]] %in% c('I'))+1] = 0 ## insertions have 0 width on reference / subject
             cumsum(x[1:(length(x)-1)]) + r.start[i]
         })
 
-        ends.ref = lapply(1:length(cigar.lens), function(i)
-        {
+        ends.ref = lapply(1:length(cigar.lens), function(i){
             x = cigar.lens[[i]];
             x[which(cigar.vals[[i]] %in% c('I'))] = 0
             Cumsum(x) + r.start[i] - 1
@@ -1072,11 +1132,13 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         ## pick up splice (including soft clipped and indel)
         splice.char = 'N'
 
-        if (use.D)
+        if (use.D){
             splice.char = c(splice.char, 'D')
+        }
 
-        if (rem.soft)
+        if (rem.soft){
             splice.char = c(splice.char, 'S')
+        }
 
         is.splice = !(cigar.vals %in% splice.char)
         iix = iix[is.splice]
@@ -1089,20 +1151,19 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         str <- str[iix] #
 
         out.gr = GRanges()
-        if (length(cigar.vals)>0)
-            {
+        if (length(cigar.vals)>0){
             other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)
 
-            if (get.seq)
-            {
+            if (get.seq){
                 var.seq = lapply(1:length(cigar.vals),
-                                 function(i)
-                                 {
-                                     if (ends.seq[i]<starts.seq[i])
-                                         return('') # deletion
-                                     else
-                                         seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
-                                 })
+                    function(i){
+                        if (ends.seq[i]<starts.seq[i]){
+                            return('') ## deletion
+                            }
+                        else{
+                            seq[[iix[i]]][starts.seq[i]:ends.seq[i]] ## insertion
+                        }
+                    })
                 values(other.gr)$seq = sapply(var.seq, paste, collapse = '')
             }
 
@@ -1118,145 +1179,145 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         out.gr$fid = out.iix
         out.gr$qname = reads$qname[out.gr$rid]
 
-        if (return.grl)
-        {
+        if (return.grl){
             out.grl = rep(GRangesList(GRanges()), nreads)
             tmp.grl = split(out.gr, out.iix)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
         }
-        else
+        else{
             return(out.gr)
+        }
     }
 }
 
-#' bamflag
+
+
+
+#' @name bamflag
+#' @title Returns matrix of bits from BAM flags
+#' @description
 #'
-#' shortcut .. assumes reads are GappedAlignments with flag variable or actual integers representing bam flag
+#' Shortcut function: assumes reads are GappedAlignments with flag variable or actual integers representing BAM flag
+#'
 #' @param reads GenomicRanges holding the reads
 #' @name bamflag
+#' @return matrix of bits from BAM flags
 #' @export
 bamflag = function(reads)
 {
-    if (inherits(reads, 'GappedAlignments') | inherits(reads, 'data.frame') | inherits(reads, 'GRanges'))
+    if (inherits(reads, 'GappedAlignments') | inherits(reads, 'data.frame') | inherits(reads, 'GRanges')){
         bf = reads$flag
-    else
+    }
+    else{
         bf = reads
+    }
 
     out = matrix(as.numeric(intToBits(bf)), byrow = T, ncol = 32)[, 1:12, drop = FALSE]
     colnames(out) = c('isPaired', 'isProperPair', 'isUnmappedQuery', 'hasUnmappedMate', 'isMinusStrand', 'isMateMinusStrand', 'isFirstMateRead', 'isSecondMateRead', 'isNotPrimaryRead', 'isNotPassingQualityControls', 'isDuplicate', 'isSupplementary')
 
     return(out)
-                                        #    if (inherits(reads, 'GappedAlignments'))
-                                        #      return(bamFlagAsBitMatrix(values(reads)$flag))
-                                        #    else
-                                        #      return(bamFlagAsBitMatrix(reads))
 }
 
 
-#' bamtag
+
+
+#' @name bamtag
+#' @title Outputs a tag to identify duplicate reads in GRanges input
+#' @description
 #'
-#' outputs a tag that cats qname, first vs first second mate +/- secondary alignment +/- gr.string
+#' Outputs a tag that cats 'qname', first vs first second mate +/- secondary alignment +/- gr.string
 #' to give an identifier for determine duplicates in a read pile
+#'
 #' @param reads GenomicRanges holding the reads
-#' @name bamflag
+#' @param secondary boolean including secondary alignment(s) (default == FALSE)
+#' @param gr.string boolean input reads into gr.string() (default == FALSE)
 #' @export
-bamtag = function(reads, secondary = F, gr.string = F)
+bamtag = function(reads, secondary = FALSE, gr.string = FALSE)
 {
     grs = sec = NULL
-    if (secondary)
+    if (secondary){
         sec = bamflag(read$flag[, 'isNotPrimaryRead'])
+    }
 
-    if (gr.string)
-        grs = gr.string(reads, mb  = F)
+    if (gr.string){
+        grs = gr.string(reads, mb = FALSE)
+    }
 
     return(paste(reads$qname, ifelse(bamflag(reads$flag)[, 'isFirstMateRead'], '1', '2'), grs, sec, sep = '_'))
 }
 
 
-#' Count bases in cigar string
+
+
+#' @name countCigar
+#' @title Count bases in cigar string
+#' @description
 #'
 #' Counts the total number of bases, per cigar, that fall into D, I, M, S categories.
 #' countCigar makes no distinction between, for instance 1S2M2S, 2S2M1S, or 3S2M
+#'
 #' @param cigar character vector of cigar strings
-#' @return a 4-column, length(cigar)-row matrix with the total counts for each type
+#' @return matrix of dimensions (4-column, length(cigar)) with the total counts for each type
 #' @export
-countCigar <- function(cigar) {
+countCigar <- function(cigar){
 
-    cigar.vals <- unlist(strsplit(cigar, "\\d+"))
-    cigar.lens <- strsplit(cigar, "[A-Z]")
-    lens <- nchar(gsub('\\d+', '', cigar))
-    lens[is.na(cigar)] <- 1
+    cigar.vals = unlist(strsplit(cigar, "\\d+"))
+    cigar.lens = strsplit(cigar, "[A-Z]")
+    lens = nchar(gsub('\\d+', '', cigar))
+    lens[is.na(cigar)] = 1
 
-    cigar.lens <- as.numeric(unlist(cigar.lens))
-    cigar.vals <- cigar.vals[cigar.vals != ""]
-    repr       <- rep(seq_along(cigar), lens)
-    dt         <- data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
+    cigar.lens = as.numeric(unlist(cigar.lens))
+    cigar.vals = cigar.vals[cigar.vals != ""]
+    repr       = rep(seq_along(cigar), lens)
+    dt         = data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
     
-    smr.d      <- dt["D",][, sum(lens), by=group]
-    smr.i      <- dt["I",][, sum(lens), by=group]
-    smr.m      <- dt["M",][, sum(lens), by=group]
-    smr.s      <- dt["S",][, sum(lens), by=group]
+    smr.d = dt["D",][, sum(lens), by=group]
+    smr.i = dt["I",][, sum(lens), by=group]
+    smr.m = dt["M",][, sum(lens), by=group]
+    smr.s = dt["S",][, sum(lens), by=group]
 
-    out <- matrix(nrow=length(cigar), ncol=4, 0)
-    out[smr.d$group,1] <- smr.d$V1
-    out[smr.i$group,2] <- smr.i$V1
-    out[smr.m$group,3] <- smr.m$V1
-    out[smr.s$group,4] <- smr.s$V1
-    colnames(out) <- c('D','I','M','S')
+    out = matrix(nrow=length(cigar), ncol=4, 0)
+    out[smr.d$group,1] = smr.d$V1
+    out[smr.i$group,2] = smr.i$V1
+    out[smr.m$group,3] = smr.m$V1
+    out[smr.s$group,4] = smr.s$V1
+    colnames(out) = c('D','I','M','S')
 
     return(out)
 }
 
 
 
-########################
-#' get.var.col
-#'
-#' simple function storing default
-#' variant color scheme
-#' @name get.var.col
-#' @export
-########################
-get.varcol = function()
-  {
-    VAR.COL = c('XA' = 'green', 'XG' = 'brown', 'XC' = 'blue', 'XT' = 'red', 'D' = 'white', 
-    'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
-    return(VAR.COL)
-  }
 
-
-
-#' is.paired.end
-#'
+#' @name is.paired.end
+#' @title Check if BAM file is paired end by using 0x1 flag
 #' @description
 #'
-#' Check if bam file is paired end by using 0x1 flag
-#' 
-#' @name is.paired.end
+#' Check if BAM file is paired end by using 0x1 flag, 
+#' pipes to 'samtools' via command line
+#'
+#' @param bams vector of input BAMs
+#' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
 is.paired.end = function(bams)
-    {
-        out = sapply(bams, function(x)            
-            {
-                if (is.na(x))
-                    return(NA)
-                if (!file.exists(x))
-                    return(NA)
-                out = FALSE                
-                p = pipe(sprintf('samtools view -h  %s | head -n 100 | samtools view -f 0x1 - | wc -l', x))
-                ln = as.numeric(readLines(p))
-                out = ln>0
-                close(p)
-                return(out)                
-            })     
-        return(out)
-    }
-
-alpha = function(col, alpha)
 {
-  col.rgb = col2rgb(col)
-  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
-  names(out) = names(col)
-  return(out)
+    out = sapply(bams, function(x){
+        if (is.na(x)){
+            return(NA)
+        }
+        if (!file.exists(x)){
+            return(NA)
+        }
+        out = FALSE                
+        p = pipe(sprintf('samtools view -h  %s | head -n 100 | samtools view -f 0x1 - | wc -l', x))
+        ln = as.numeric(readLines(p))
+        out = ln > 0
+        close(p)
+        return(out)                
+    })   
+
+    return(out)
 }
+
+

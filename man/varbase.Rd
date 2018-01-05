@@ -2,30 +2,30 @@
 % Please edit documentation in R/bamUtils.R
 \name{varbase}
 \alias{varbase}
-\title{varbase}
+\title{Returns variant bases and ranges from GRanges or gapped alignment input}
 \usage{
 varbase(reads, soft = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{reads}{GenomicRanges to extract variants from}
 
-\item{soft}{[Default TRUE]}
+\item{soft}{boolean Flag to include soft-clipped matches (default == TRUE)}
 
-\item{verbose}{[Default TRUE]}
+\item{verbose}{boolean verbose flag (default == TRUE)}
 }
 \description{
-takes gr or gappedalignment object "reads" and uses cigar, MD, seq fields
+Takes GRanges or gapped alignment object "reads" and uses cigar, MD, seq fields
 to return variant bases and ranges
-}
-\details{
-returns grl (of same length as input) of variant base positions with character vector $varbase field populated with variant bases
-for each gr item in grl[[k]], with the following handling for insertions, deletions, and substitution gr's:
 
-substitutions: nchar(gr$varbase) = width(gr) of the corresponding var
-insertions: nchar(gr$varbase)>=1, width(gr) ==0
-deletions: gr$varbase = '', width(gr)>=1
+Teturns GRangesList (of same length as input) of variant base positions with character vector 
+$varbase field populated with variant bases for each GRanges item in grl[[k]], 
+with the following handling for insertions, deletions, and substitution GRange's:
 
-Each gr also has $type flag which shows the cigar string code for the event ie
+Substitutions: nchar(gr$varbase) = width(gr) of the corresponding var
+Insertions: nchar(gr$varbase)>=1, width(gr) ==0
+Deletions: gr$varbase = '', width(gr)>=1
+
+Each GRanges also has $type flag which shows the cigar string code for the event i.e.
 S = soft clip --> varbase represents clipped bases
 I = insertion --> varbase represents inserted bases
 D = deletion --> varbase is empty

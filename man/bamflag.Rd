@@ -2,21 +2,16 @@
 % Please edit documentation in R/bamUtils.R
 \name{bamflag}
 \alias{bamflag}
-\alias{bamtag}
-\title{bamflag}
+\title{Returns matrix of bits from BAM flags}
 \usage{
 bamflag(reads)
-
-bamtag(reads, secondary = F, gr.string = F)
 }
 \arguments{
 \item{reads}{GenomicRanges holding the reads}
-
-\item{reads}{GenomicRanges holding the reads}
+}
+\value{
+matrix of bits from BAM flags
 }
 \description{
-shortcut .. assumes reads are GappedAlignments with flag variable or actual integers representing bam flag
-
-outputs a tag that cats qname, first vs first second mate +/- secondary alignment +/- gr.string
-to give an identifier for determine duplicates in a read pile
+Shortcut function: assumes reads are GappedAlignments with flag variable or actual integers representing BAM flag
 }

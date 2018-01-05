@@ -2,24 +2,24 @@
 % Please edit documentation in R/bamUtils.R
 \name{read.bam}
 \alias{read.bam}
-\title{read.bam}
+\title{Read BAM file into GRanges or data.table}
 \usage{
-read.bam(bam, intervals = NULL, gr = intervals, all = FALSE,
-  bami = NULL, pairs.grl = TRUE, stripstrand = TRUE,
-  what = scanBamWhat(), unpack.flag = FALSE, verbose = FALSE,
-  tag = NULL, isPaired = NA, isProperPair = NA, isUnmappedQuery = NA,
-  hasUnmappedMate = NA, isNotPassingQualityControls = NA, isDuplicate = F,
+read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
+  pairs.grl = TRUE, stripstrand = TRUE, what = scanBamWhat(),
+  unpack.flag = FALSE, verbose = FALSE, tag = NULL, isPaired = NA,
+  isProperPair = NA, isUnmappedQuery = NA, hasUnmappedMate = NA,
+  isNotPassingQualityControls = NA, isDuplicate = FALSE,
   isValidVendorRead = TRUE, as.grl = TRUE, as.data.table = FALSE,
   ignore.indels = FALSE, size.limit = 1e+06, ...)
 }
 \arguments{
-\item{bam}{Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
+\item{bam}{Input BAM file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
 
 \item{intervals}{GRanges of intervals to retrieve}
 
 \item{gr}{GRanges of intervals to retrieve}
 
-\item{bami}{Input bam index file.}
+\item{bai}{Input BAM index file.}
 
 \item{stripstrand}{Flag to ignore strand information on the query intervals. Default TRUE}
 
@@ -59,8 +59,6 @@ read.bam(bam, intervals = NULL, gr = intervals, all = FALSE,
 Reads in one of GRanges, GRangesList or data.table
 }
 \description{
-Read BAM file into GRanges or data.table
-
-Wrapper around Rsamtools bam scanning functions,
-by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
+Wrapper around Rsamtools BAM scanning functions
+By default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
 }

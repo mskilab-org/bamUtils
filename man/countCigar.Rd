@@ -10,7 +10,7 @@ countCigar(cigar)
 \item{cigar}{character vector of cigar strings}
 }
 \value{
-a 4-column, length(cigar)-row matrix with the total counts for each type
+matrix of dimensions (4-column, length(cigar)) with the total counts for each type
 }
 \description{
 Counts the total number of bases, per cigar, that fall into D, I, M, S categories.

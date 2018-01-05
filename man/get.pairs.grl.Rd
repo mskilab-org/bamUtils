@@ -2,17 +2,17 @@
 % Please edit documentation in R/bamUtils.R
 \name{get.pairs.grl}
 \alias{get.pairs.grl}
-\title{Takes reads object and returns grl with each read and its mate (if exists)}
+\title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-get.pairs.grl(reads, as.grl = TRUE, verbose = F)
+get.pairs.grl(reads, as.grl = TRUE, verbose = FALSE)
 }
 \arguments{
-\item{reads}{\code{GRanges} holding reads}
+\item{reads}{GRanges holding reads}
 
-\item{as.grl}{Default TRUE. Return as a \code{GRangesList}}
+\item{as.grl}{boolean returns as GRangesList if TRUE (default == TRUE)}
 
-\item{verbose}{Default FALSE}
+\item{verbose}{boolean verbose flag (default == FALSE)}
 }
 \description{
-Takes reads object and returns grl with each read and its mate (if exists)
+Takes reads object and returns GRangesList with each read and its mate (if exists)
 }

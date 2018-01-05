@@ -2,5 +2,14 @@
 
 # bamUtils
 
-Storing functions that were formerly in mskilab/gUtils. 
+Set of utility functions to work with BAM files, based on `RSamtools`, `GenomnicRanges` and `data.table`
+
+## Installation
+
+    devtools::install_github("mskilab/bamUtils")
+
+
+Users must install [samtools](http://samtools.sourceforge.net/) to be executable via the command line
+
+
 
