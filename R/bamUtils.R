@@ -10,27 +10,25 @@
 #' Wrapper around Rsamtools BAM scanning functions
 #' By default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
 #' 
-#' @param bam Input BAM file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bai Input BAM index file.
+#' @param bam string Input BAM file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai string Input BAM index file.
 #' @param gr GRanges of intervals to retrieve
 #' @param intervals GRanges of intervals to retrieve
-#' @param stripstrand Flag to ignore strand information on the query intervals. Default TRUE
-#' @param what What fields to pull down from BAM. Default \code{scanBamWhat()}
-#' @param unpack.flag Add features corresponding to read flags. Default FALSE
-#' @param verbose Increase verbosity
-#' @param tag Additional tags to pull down from the BAM (e.g. 'R2')
-#' @param isPaired See documentation for \code{scanBamFlag}. Default NA
-#' @param isProperPair See documentation for \code{scanBamFlag}. Default NA
-#' @param isUnmappedQuery See documentation for \code{scanBamFlag}. Default NA
-#' @param hasUnmappedMate See documentation for \code{scanBamFlag}. Default NA
-#' @param isNotPassingQualityControls See documentation for \code{scanBamFlag}. Default NA
-#' @param isDuplicate See documentation for \code{scanBamFlag}. Default FALSE
-#' @param isValidVendorRead See documentation for \code{scanBamFlag}. Default TRUE
-#' @param as.grl Return reads as GRangesList. Controls whether \code{get.pairs.grl} does split. Default TRUE
-#' @param as.data.table Return reads in the form of a data.table rather than GRanges/GRangesList
-#' @param ignore.indels messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-#' @param size.limit Default 1e6
-#' @param ... passed to \code{scanBamFlag}
+#' @param stripstrand boolean Flag to ignore strand information on the query intervals (default == TRUE)
+#' @param what vector What fields to pull down from BAM. Default \code{scanBamWhat()}
+#' @param unpack.flag boolean Add features corresponding to read flags (default == FALSE)
+#' @param verbose boolean verbose flag (default == FALSE)
+#' @param tag vector Additional tags to pull down from the BAM (e.g. 'R2')
+#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
+#' @param pairs.grl.split boolean Return reads as GRangesList. Controls whether get.pairs.grl() does split (default == TRUE)
+#' @param as.data.table boolean Return reads in the form of a data.table rather than GRanges/GRangesList (default == FALSE)
+#' @param ignore.indels boolean Flag messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs (default == FALSE)
+#' @param ... futher arguments passed to Rsamtools::scanBamFlag()
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
 read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
@@ -51,11 +49,9 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
                     hasUnmappedMate = NA,
                     isNotPassingQualityControls = NA,
                     isDuplicate = FALSE,
-                    isValidVendorRead = TRUE,
-                    as.grl=TRUE,   ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
-                    as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
-                    ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-                    size.limit = 1e6,
+                    pairs.grl.split = TRUE,   ## Return pairs as grl, rather than GRanges; Controls whether get.pairs.grl() does split 
+                    as.data.table = FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
+                    ignore.indels = FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
                     ... ## passed to scanBamFlag (
                     )
 {
@@ -165,7 +161,7 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
         })))
 
         ## faster CIGAR string parsing with vectorization and data tables
-        if (verbose) {
+        if (verbose){
             print(Sys.time() - now)
             print('Filling pos2 from cigar')
         }
@@ -235,12 +231,12 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
         if (verbose){
             cat('Pairing reads\n')
         }
-        out = get.pairs.grl(out, as.grl=as.grl)
+        out = get.pairs.grl(out, pairs.grl.split = pairs.grl.split)
         if (verbose){
             cat('done\n')
             print(paste0('Total time to complete: ', Sys.time() - now))
         }
-        if (as.grl && !as.data.table){
+        if (pairs.grl.split && !as.data.table){
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -262,23 +258,22 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
 #'
 #' Basically a wrapper for 'Rsamtools::countBam()' with some standard settings for 'Rsamtools::ScanBamParams()'
 #'
-#' @param bam Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bai Input BAM index file.
+#' @param bam string Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai string Input BAM index file.
 #' @param gr GRanges of intervals to retrieve
-#' @param verbose Increase verbosity
-#' @param isPaired See documentation for \code{scanBamFlag}. Default NA
-#' @param isProperPair See documentation for \code{scanBamFlag}. Default NA
-#' @param isUnmappedQuery See documentation for \code{scanBamFlag}. Default NA
-#' @param hasUnmappedMate See documentation for \code{scanBamFlag}. Default NA
-#' @param isNotPassingQualityControls See documentation for \code{scanBamFlag}. Default NA
-#' @param isDuplicate See documentation for \code{scanBamFlag}. Default FALSE
-#' @param isValidVendorRead See documentation for \code{scanBamFlag}. Default TRUE
-#' @param mc.cores Number of cores in \code{mclapply} call.
-#' @param chunksize How many intervals to process per core. Default 10.
-#' @param ... passed to \code{scanBamFlag}
+#' @param verbose boolean verbose flag (default == FALSE)
+#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
+#' @param mc.cores integer Number of cores in \code{mclapply} call
+#' @param chunksize integer How many intervals to process per core (default == 10)
+#' @param ... futher arguments passed to Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, isValidVendorRead = TRUE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
+bam.cov.gr = function(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
     if (is.character(bam))
         if (!is.null(bai))
@@ -341,13 +336,13 @@ bam.cov.gr = function(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE, i
 #' @param window integer scalar window size (in bp)
 #' @param chunksize integer scalar, size of window
 #' @param min.mapq integer scalar, minimim map quality reads to consider for counts
-#' @param verbose dummy
+#' @param verbose boolean verbose flag (default == TRUE)
 #' @param max.tlen max paired-read insert size to consider
 #' @param st.flag samtools flag to filter reads on [Default: -f 0x02 -F 0x10]
 #' @param fragments dummy
 #' @param region dummy
 #' @param do.gc dummy
-#' @param midpoint if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment
+#' @param midpoint boolean flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered
 #' in the given bin.
 #' @export
@@ -471,7 +466,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 #' @title Compute rpkm counts from counts
 #' @description
 #'
-#' Takes 'countbam()'' (or 'bam.cov.gr()') output "counts" and computes rpkm by aggregating across "by" variable
+#' Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
 #'
 #' @param counts GRanges, data.table or data.frame with records, width fields
 #' @param by string Field to group counts by
@@ -496,10 +491,10 @@ counts2rpkm = function(counts, by)
 #' Takes reads object and returns GRangesList with each read and its mate (if exists)
 #'
 #' @param reads GRanges holding reads
-#' @param as.grl boolean returns as GRangesList if TRUE (default == TRUE)
+#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
 #' @param verbose boolean verbose flag (default == FALSE)
 #' @export
-get.pairs.grl = function(reads, as.grl = TRUE, verbose = FALSE)
+get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 {
 
     isdt = inherits(reads, 'data.table')
@@ -556,7 +551,7 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = FALSE)
         setkey(r.gr, qname)
     }
 
-    if (as.grl && !isdt) {
+    if (pairs.grl.split && !isdt) {
         if (verbose){
             cat('splitting\n')
         }

@@ -17,7 +17,7 @@ bam.cov.tile(bam.file, window = 100, chunksize = 1e+05, min.mapq = 30,
 
 \item{min.mapq}{integer scalar, minimim map quality reads to consider for counts}
 
-\item{verbose}{dummy}
+\item{verbose}{boolean verbose flag (default == TRUE)}
 
 \item{max.tlen}{max paired-read insert size to consider}
 
@@ -29,7 +29,7 @@ bam.cov.tile(bam.file, window = 100, chunksize = 1e+05, min.mapq = 30,
 
 \item{do.gc}{dummy}
 
-\item{midpoint}{if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment}
+\item{midpoint}{boolean flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment}
 }
 \value{
 GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered

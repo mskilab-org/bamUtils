@@ -4,12 +4,12 @@
 \alias{get.pairs.grl}
 \title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-get.pairs.grl(reads, as.grl = TRUE, verbose = FALSE)
+get.pairs.grl(reads, pairs.grl.split = TRUE, verbose = FALSE)
 }
 \arguments{
 \item{reads}{GRanges holding reads}
 
-\item{as.grl}{boolean returns as GRangesList if TRUE (default == TRUE)}
+\item{pairs.grl.split}{boolean returns as GRangesList if TRUE (default == TRUE)}
 
 \item{verbose}{boolean verbose flag (default == FALSE)}
 }

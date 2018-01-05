@@ -12,7 +12,7 @@ counts2rpkm(counts, by)
 \item{by}{string Field to group counts by}
 }
 \description{
-Takes 'countbam()'' (or 'bam.cov.gr()') output "counts" and computes rpkm by aggregating across "by" variable
+Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
 }
 \note{
 The denominator (i.e. total reads) is just the sum of counts$records
