@@ -12,7 +12,7 @@ count.clips(reads, hard = FALSE)
 \item{hard}{boolean Option counts hard clips (default == FALSE)}
 }
 \description{
-Takes GRanges or gapped alignment object and uses cigar field (or takes character vector of cigar strings)
+Takes GRanges or GappedAlignments object and uses cigar field (or takes character vector of cigar strings)
 and returns data.frame with fields (for character input)
 $right.clips number of "right" soft clips (e.g. cigar 89M12S)
 $left.clips number of "left" soft clips (e.g. cigar 12S89M), 

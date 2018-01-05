@@ -29,10 +29,10 @@ correspond to portions of the cigar
 
 i.e. each outputted GRanges/GRangesList element contains the granges corresponding to all non-N portions of cigar string
 
-if GRangesList provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
+If GRangesList provided as input (e.g. paired reads) then all of the spliced ranges resulting from each
 input GRangesList element will be put into the corresponding output GRangesList element
 
 NOTE: does not update MD tag
 
-if use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
+If use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
 }

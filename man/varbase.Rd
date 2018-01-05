@@ -2,7 +2,7 @@
 % Please edit documentation in R/bamUtils.R
 \name{varbase}
 \alias{varbase}
-\title{Returns variant bases and ranges from GRanges or gapped alignment input}
+\title{Returns variant bases and ranges from GRanges or GappedAlignments input}
 \usage{
 varbase(reads, soft = TRUE, verbose = TRUE)
 }
@@ -14,7 +14,7 @@ varbase(reads, soft = TRUE, verbose = TRUE)
 \item{verbose}{boolean verbose flag (default == TRUE)}
 }
 \description{
-Takes GRanges or gapped alignment object "reads" and uses cigar, MD, seq fields
+Takes GRanges or GappedAlignments object "reads" and uses cigar, MD, seq fields
 to return variant bases and ranges
 
 Teturns GRangesList (of same length as input) of variant base positions with character vector 

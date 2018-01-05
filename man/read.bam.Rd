@@ -4,7 +4,7 @@
 \alias{read.bam}
 \title{Read BAM file into GRanges or data.table}
 \usage{
-read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
+read.bam(bam, bai = NULL, intervals = NULL, gr = intervals, all = FALSE,
   pairs.grl = TRUE, stripstrand = TRUE, what = scanBamWhat(),
   unpack.flag = FALSE, verbose = FALSE, tag = NULL, isPaired = NA,
   isProperPair = NA, isUnmappedQuery = NA, hasUnmappedMate = NA,
@@ -15,15 +15,19 @@ read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
 \arguments{
 \item{bam}{string Input BAM file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
 
-\item{intervals}{GRanges of intervals to retrieve}
+\item{bai}{string Input BAM index file.}
+
+\item{intervals}{GRanges of intervals to retrieve. If left unspecified, will try to pull down entire BAM file}
 
 \item{gr}{GRanges of intervals to retrieve}
 
-\item{bai}{string Input BAM index file.}
+\item{all}{boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)}
+
+\item{pairs.grl}{boolean Flag if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval (default = TRUE)}
 
 \item{stripstrand}{boolean Flag to ignore strand information on the query intervals (default == TRUE)}
 
-\item{what}{vector What fields to pull down from BAM. Default \code{scanBamWhat()}}
+\item{what}{vector What fields to pull down from BAM. (default == \code{scanBamWhat()})}
 
 \item{unpack.flag}{boolean Add features corresponding to read flags (default == FALSE)}
 
