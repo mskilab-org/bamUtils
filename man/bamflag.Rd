@@ -7,7 +7,7 @@
 bamflag(reads)
 }
 \arguments{
-\item{reads}{GenomicRanges holding the reads}
+\item{reads}{GenomicRanges or 'GappedAlignments' or data.table holding the reads}
 }
 \value{
 matrix of bits from BAM flags

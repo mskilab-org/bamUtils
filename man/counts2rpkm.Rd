@@ -11,6 +11,9 @@ counts2rpkm(counts, by)
 
 \item{by}{string Field to group counts by}
 }
+\value{
+TO BE DONE
+}
 \description{
 Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
 }

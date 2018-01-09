@@ -7,7 +7,7 @@
 count.clips(reads, hard = FALSE)
 }
 \arguments{
-\item{reads}{GenomicRanges holding the reads}
+\item{reads}{GenomicRanges or GappedAlignments holding the reads}
 
 \item{hard}{boolean Option counts hard clips (default == FALSE)}
 }

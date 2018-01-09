@@ -4,7 +4,7 @@
 \alias{bam.cov.gr}
 \title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-bam.cov.gr(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE,
+bam.cov.gr(bam, bai = NULL, intervals, count.all = FALSE, isPaired = TRUE,
   isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE,
   isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1,
   chunksize = 10, verbose = FALSE, ...)
@@ -12,9 +12,9 @@ bam.cov.gr(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE,
 \arguments{
 \item{bam}{string Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
 
-\item{gr}{GRanges of intervals to retrieve}
+\item{bai}{string Input BAM index file}
 
-\item{bai}{string Input BAM index file.}
+\item{intervals}{GRanges of intervals to retrieve}
 
 \item{isPaired}{boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
 
@@ -32,9 +32,9 @@ bam.cov.gr(bam, gr, bai = NULL, count.all = FALSE, isPaired = TRUE,
 
 \item{chunksize}{integer How many intervals to process per core (default == 10)}
 
-\item{verbose}{boolean verbose flag (default == FALSE)}
+\item{verbose}{boolean "verbose" flag (default == FALSE)}
 
-\item{...}{futher arguments passed to Rsamtools::scanBamFlag()}
+\item{...}{futher arguments passed into Rsamtools::scanBamFlag()}
 }
 \value{
 GRanges parallel to input GRanges, but with metadata filled in.

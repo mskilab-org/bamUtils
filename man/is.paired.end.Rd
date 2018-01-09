@@ -10,9 +10,9 @@ is.paired.end(bams)
 \item{bams}{vector of input BAMs}
 }
 \value{
-GRanges parallel to input GRanges, but with metadata filled in.
+boolean returns TRUE if BAM file is paired-end, returns FALSE if BAM not paired-end
 }
 \description{
-Check if BAM file is paired end by using 0x1 flag, 
+Check if BAM file is paired-end by using 0x1 flag, 
 pipes to 'samtools' via command line
 }

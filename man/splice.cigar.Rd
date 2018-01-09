@@ -23,7 +23,7 @@ splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
 \item{return.grl}{boolean Return as GRangesList (default == TRUE)}
 }
 \description{
-Takes GRanges or gapped alignment object "reads" and parses cigar fields
+Takes GRanges or GappedAlignments object "reads" and parses cigar fields
 to return GRanges or GRangesList corresponding to spliced alignments on the genome, which 
 correspond to portions of the cigar
 

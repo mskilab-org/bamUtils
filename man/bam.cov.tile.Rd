@@ -9,35 +9,35 @@ bam.cov.tile(bam.file, window = 100, chunksize = 1e+05, min.mapq = 30,
   fragments = TRUE, region = NULL, do.gc = FALSE, midpoint = TRUE)
 }
 \arguments{
-\item{bam.file}{character scalar input bam file}
+\item{bam.file}{string Input BAM file}
 
-\item{window}{integer scalar window size (in bp)}
+\item{window}{integer Window size (in bp) (default == 1e2)}
 
-\item{chunksize}{integer scalar, size of window}
+\item{chunksize}{integer Size of window (default == 1e5)}
 
-\item{min.mapq}{integer scalar, minimim map quality reads to consider for counts}
+\item{min.mapq}{integer Minimim map quality reads to consider for counts (default == 30)}
 
-\item{verbose}{boolean verbose flag (default == TRUE)}
+\item{verbose}{boolean "verbose" flag (default == TRUE)}
 
 \item{max.tlen}{max paired-read insert size to consider}
 
-\item{st.flag}{samtools flag to filter reads on [Default: -f 0x02 -F 0x10]}
+\item{st.flag}{boolean Samtools flag to filter reads on (default == '-f 0x02 -F 0x10')}
 
-\item{fragments}{dummy}
+\item{fragments}{boolean Flag (default == FALSE)}
 
-\item{region}{dummy}
+\item{region}{um? (default == NULL)}
 
-\item{do.gc}{dummy}
+\item{do.gc}{boolean Flag to execute garbage collection via 'gc()' (default == FALSE)}
 
-\item{midpoint}{boolean flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment}
+\item{midpoint}{boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment}
 }
 \value{
 GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered
 in the given bin.
 }
 \description{
-Quick way to get tiled coverage via piping to samtools (~10 CPU-hours for 100bp tiles, 5e8 read pairs)
+Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 100bp tiles, 5e8 read pairs)
 
-Gets coverage for window size "window", pulling "chunksize" records at a time and incrementing bin
+Gets coverage for window size "window" [bp], pulling "chunksize" records at a time and incrementing bin
 corresponding to midpoint or overlaps of corresponding (proper pair) fragment (uses TLEN and POS for positive strand reads that are part of a proper pair)
 }
