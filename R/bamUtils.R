@@ -12,7 +12,7 @@
 #' 
 #' @param bam string Input BAM file. Advisable to make BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
 #' @param bai string Input BAM index file.
-#' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file
+#' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file  
 #' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
 #' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval (default == FALSE)
 #' @param stripstrand boolean Flag to ignore strand information on the query intervals (default == TRUE)
@@ -103,7 +103,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
     param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
     if (verbose){
-        cat('Reading BAM file\n')
+        message('Reading BAM file\n')
     }
 
     if (class(bam) == 'BamFile'){
@@ -115,7 +115,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 
     if (verbose){
         print(Sys.time() - now)
-        print('BAM now read. Converting into data.frame')
+        message('BAM now read. Converting into data.frame')
     }
 
     out = out[sapply(out, function(x) length(x$qname) > 0)]
@@ -123,7 +123,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
     if (length(out) > 0){
         if (verbose){
             print(Sys.time() - now)
-            print('Combining lists')
+            message('Combining lists')
         }
         out = as.data.table(rbindlist(lapply(out, function(x)
         {
@@ -150,7 +150,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
         ## faster CIGAR string parsing with vectorization and data tables
         if (verbose){
             print(Sys.time() - now)
-            print('Filling pos2 from cigar')
+            message('Filling pos2 from cigar')
         }
         if (ignore.indels){
             cigar = gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
@@ -172,7 +172,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 
         if (verbose){
             print(Sys.time() - now)
-            print('Fixing seqdata')
+            message('Fixing seqdata')
         }
         out$qwidth = nchar(out$seq)
         unm = is.na(out$pos)
@@ -248,6 +248,7 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 #' @param bam string Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
 #' @param bai string Input BAM index file
 #' @param intervals GRanges of intervals to retrieve
+#' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
 #' @param verbose boolean "verbose" flag (default == FALSE)
 #' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
 #' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
@@ -260,34 +261,48 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 #' @param ... futher arguments passed into Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, bai = NULL, intervals, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
+bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
-    if (missing(bam) | missing(intervals)){
-        stop("Error: arguments 'bam' and 'intervals' are both required for 'bam.cov.gr'. Please see documentation for details.")
-    }
-    if (!is(intervals, "GRanges")){
-        stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
-    }
-
-    if (is.character(bam))
+    if (!inherits(bam, 'BamFile'))
     {
-        if (!is.null(bai))
+        if (is.null(bai))
         {
-            bam = BamFile(bam, bai)
-        }
-        else
-        {
-            if (file.exists(paste(bam, 'bai', sep = '.'))){
-                bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
+            if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
+                bam = BamFile(bam, bai)
             }
-            else if (file.exists(gsub('.bam$', '.bai', bam))){
-                bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
+            else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
+                bam = BamFile(bam, bai)
             }
             else{
-                stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
+                bam = BamFile(bam)
             }
         }
+        else{
+            bam = BamFile(bam, index = bai)
+        }
+    }
+
+    if (length(intervals)==0){
+        intervals = NULL
+    }
+
+    if (is.null(intervals))
+    {
+        if (all == TRUE){
+            intervals = si2gr(seqinfo(bam))
+        }
+        else{
+            stop('Error: Input "interval" is NULL with "all=FALSE". If "intervals" unspecified and "all=TRUE", "read.bam()" will load entire BAM. Otherwise, users must provide non-empty interval list. Please see documentation for details.')
+        }
+    }
+
+    if (class(intervals) == 'data.frame'){
+        intervals = seg2gr(intervals);
+    }
+
+    if (inherits(intervals, 'GRangesList')){
+        intervals = unlist(intervals);
     }
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))

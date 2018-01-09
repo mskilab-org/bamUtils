@@ -1,7 +1,7 @@
 ## tests on mskilab/bamUtils/tests/testthat/toy.bam and index
 
 library(bamUtils)
-##library(testthat)  ## remove
+library(testthat)  ## remove
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 
@@ -12,11 +12,11 @@ context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 ## $ samtools view -S -b small.sam > small.bam
 ## $ samtools index small.bam
 
+example_bam = 'small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+example_bai = 'small.bam.bai' 
 
-example_bam = './tests/testthat/small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-example_bai = './tests/testthat/small.bam.bai' 
-
-
+## example_bam = './tests/testthat/small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+## example_bai = './tests/testthat/small.bam.bai'
 
 ### MUST CHECK 'pairs.grl' issue with 'get.mate.gr()'
 ### MUST CHECK stripstrand
@@ -49,7 +49,7 @@ test_that('read.bam', {
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='qwidth')
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='MD')  ## error, https://www.rdocumentation.org/packages/Rsamtools/versions/1.24.0/topics/BamInput
     ## verbose
-    read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), verbose=TRUE))
+    ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), verbose=TRUE))
     ## check 'tag' works correctly
     expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'R1', as.data.table=TRUE))))
     expect_error(('nonsense_tag' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'nonsense_tag', as.data.table=TRUE))))
@@ -99,7 +99,10 @@ test_that('read.bam', {
 
 
 
+
+
 ##test_that('bamflag', 
 ##
 ##
 ##	)
+

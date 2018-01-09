@@ -4,8 +4,9 @@
 \alias{bam.cov.gr}
 \title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-bam.cov.gr(bam, bai = NULL, intervals, count.all = FALSE, isPaired = TRUE,
-  isProperPair = TRUE, isUnmappedQuery = FALSE, hasUnmappedMate = FALSE,
+bam.cov.gr(bam, bai = NULL, intervals = NULL, all = FALSE,
+  count.all = FALSE, isPaired = TRUE, isProperPair = TRUE,
+  isUnmappedQuery = FALSE, hasUnmappedMate = FALSE,
   isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1,
   chunksize = 10, verbose = FALSE, ...)
 }
@@ -15,6 +16,8 @@ bam.cov.gr(bam, bai = NULL, intervals, count.all = FALSE, isPaired = TRUE,
 \item{bai}{string Input BAM index file}
 
 \item{intervals}{GRanges of intervals to retrieve}
+
+\item{all}{boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)}
 
 \item{isPaired}{boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
 
