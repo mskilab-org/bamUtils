@@ -711,7 +711,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         }
     }
 
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
+    if (!inherits(cigar, 'character')){
         stop('Error: Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object. Please see documentation for details.')
     }
 
@@ -983,18 +983,6 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
-
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
-        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
-    }
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
-        stop('Error: Reads must have cigar and seq fields specified. Please see documentation for details.')
-    }
-
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
-        stop('Error: Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object. Please see documentation for details.')
-    }
-
     nreads = length(reads)
 
     if (nreads==0){
@@ -1044,6 +1032,19 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             md = rep(NA, length(cigar))
         }
     }
+
+    
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
+        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
+    }
+    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
+        stop('Error: Reads must have cigar and seq fields specified. Please see documentation for details.')
+    }
+
+    if (!inherits(cigar, 'character')){
+        stop('Error: Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object. Please see documentation for details.')
+    }
+
 
     ix = which(!is.na(reads$cigar))
 
@@ -1121,7 +1122,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         ends.ref = lapply(1:length(cigar.lens), function(i){
             x = cigar.lens[[i]];
             x[which(cigar.vals[[i]] %in% c('I'))] = 0
-            Cumsum(x) + r.start[i] - 1
+            cumsum(x) + r.start[i] - 1
         })
 
         iix = unlist(lapply(1:length(cigar.vals), function(x) rep(x, length(cigar.vals[[x]]))))

@@ -113,6 +113,28 @@ test_that('count.clips', {
 
 
 
+test_that('splice.cigar', {
+    ## check default
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))), 2) 
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]), 5)  
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]), 4)  
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$type[1], 'M') 
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$type[2], 'I') 
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[1], 59)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[2], 0)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[3], 3)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]])[1], 55)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]])[2], 4)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]])[3], 69)
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$fid[1], 1)
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$fid[1], 2)
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$qname[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893')
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$qname[1], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396')
+})
+
+
+
+
 test_that('bamflag', {
 	## isPaired  1 1
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isPaired[1], 1)
