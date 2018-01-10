@@ -1,7 +1,7 @@
 ## tests on mskilab/bamUtils/tests/testthat/toy.bam and index
 
 library(bamUtils)
-library(testthat)  ## remove
+##library(testthat)  ## remove
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 

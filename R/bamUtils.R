@@ -265,7 +265,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
     if (missing(bam) | missing(intervals)){
-        stop("Error: arguments 'bam' and 'gr' are both required for 'bam.cov.gr'. Please see documentation for details.")
+        stop("Error: arguments 'bam' and 'intervals' are both required for 'bam.cov.gr'. Please see documentation for details.")
     }
     if (!is(intervals, "GRanges")){
         stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
@@ -348,7 +348,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, region = NULL, do.gc = FALSE, midpoint = TRUE)
 {
-    cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
+    s
 
     sl = seqlengths(BamFile(bam.file))
 

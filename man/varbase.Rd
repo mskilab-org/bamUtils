@@ -7,7 +7,7 @@
 varbase(reads, soft = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{reads}{GenomicRanges to extract variants from}
+\item{reads}{GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from}
 
 \item{soft}{boolean Flag to include soft-clipped matches (default == TRUE)}
 
