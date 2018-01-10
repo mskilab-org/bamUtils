@@ -4,12 +4,13 @@
 \alias{count.clips}
 \title{Return data.frame with fields of "right" soft clips and "left" soft clips}
 \usage{
-count.clips(reads, hard = FALSE)
+count.clips(reads)
 }
 \arguments{
-\item{reads}{GenomicRanges or GappedAlignments holding the reads}
-
-\item{hard}{boolean Option counts hard clips (default == FALSE)}
+\item{reads}{GenomicRanges or GappedAlignments or data.frame or data.table holding the reads}
+}
+\value{
+GRanges with 'right.clips' and 'left.clips' columns added
 }
 \description{
 Takes GRanges or GappedAlignments object and uses cigar field (or takes character vector of cigar strings)

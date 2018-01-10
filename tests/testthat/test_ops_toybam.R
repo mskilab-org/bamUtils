@@ -99,10 +99,106 @@ test_that('read.bam', {
 
 
 
+test_that('count.clips', {
+	## check errors
+	expect_error(count.clips('foo'))
+	expect_error(count.clips(example_bam)) 
+	## default
+    expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$right.clips[1], 0)
+    expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$right.clips[2], 3)   
+    expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$left.clips[1], 0)
+    expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$left.clips[2], 0)  
+})
 
 
-##test_that('bamflag', 
-##
-##
-##	)
+
+
+test_that('bamflag', {
+	## isPaired  1 1
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isPaired[1], 1)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isPaired[2], 1)
+    ## isProperPair  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isProperPair[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isProperPair[2], 0)
+    ## isUnmappedQuery  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isUnmappedQuery[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isUnmappedQuery[2], 0)
+    ## hasUnmappedMate  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$hasUnmappedMate[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$hasUnmappedMate[2], 0)
+    ## isMinusStrand  1 1 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isMinusStrand[1], 1)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isMinusStrand[2], 1)
+    ## isMateMinusStrand  0 1 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isMateMinusStrand[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isMateMinusStrand[2], 1)
+    ## isFirstMateRead  1 1 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isFirstMateRead[1], 1)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isFirstMateRead[2], 1)
+    ## isSecondMateRead  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isSecondMateRead[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isSecondMateRead[2], 0)
+    ## isNotPrimaryRead  0 0
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isNotPrimaryRead[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isNotPrimaryRead[2], 0)
+    ## isNotPassingQualityControls  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isNotPassingQualityControls[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isNotPassingQualityControls[2], 0)
+    ## isDuplicate  0 0 
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isDuplicate[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isDuplicate[2], 0)
+    ## isSupplementary  0 0
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isSupplementary[1], 0)
+    expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isSupplementary[2], 0)
+})
+
+
+
+
+test_that('bamtag', {
+	## check errors
+	expect_error(bamtag('foo'))
+	expect_error(bamtag(example_bam)) 
+	## default
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')))[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1__')
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')))[2], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396_1__')   
+    ## 'secondary' == TRU#
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), secondary = TRUE)[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1__0')
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), secondary = TRUE)[2], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396_1__0')
+    ## 'gr.string' == TRUE
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), gr.string = TRUE)[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1_chr1:10032-10152-_')
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), gr.string = TRUE)[2], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396_1_chr1:10052-10178-_')
+    ## 'secondary' == TRUE & 'gr.string' == TRUE
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), secondary = TRUE, gr.string = TRUE)[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1_chr1:10032-10152-_0')
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')), secondary = TRUE, gr.string = TRUE)[2], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396_1_chr1:10052-10178-_0')
+
+})
+
+
+
+
+test_that('countCigar', {
+    expect_warning(countCigar(example_bam))   ### should be warning message: 'Warning message: In countCigar(example_bam) : NAs introduced by coercion'
+    expect_equal(dim(countCigar(example_bam))[1], 1)
+    expect_equal(dim(countCigar(example_bam))[2], 4)
+    expect_match(colnames(countCigar(example_bam))[1], "D")
+    expect_match(colnames(countCigar(example_bam))[2], "I")
+    expect_match(colnames(countCigar(example_bam))[3], "M")
+    expect_match(colnames(countCigar(example_bam))[4], "S")
+    expect_equal(countCigar(example_bam)[1], 0)
+    expect_equal(countCigar(example_bam)[2], 0)
+    expect_equal(countCigar(example_bam)[3], 0)
+    expect_equal(countCigar(example_bam)[4], 0)
+})
+
+
+
+
+test_that('is.paired.end', {
+    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
+    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
+})
+
+
+##print("done")  ### remove
 

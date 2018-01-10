@@ -264,46 +264,25 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
-    if (!inherits(bam, 'BamFile'))
-    {
-        if (is.null(bai))
+    if (missing(bam) | missing(gr)){
+        stop("Error: arguments 'bam' and 'gr' are both required for 'bam.cov.gr'. Please see documentation for details.")
+    }
+    if (!is(gr, "GRanges")){
+        stop("Error: Granges of intervals to retrieve 'gr' must be in the format 'GRanges'. Please see documentation for details.")
+    }
+
+    if (is.character(bam))
+        if (!is.null(bai))
+            bam = BamFile(bam, bai)
+        else
         {
-            if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
-                bam = BamFile(bam, bai)
-            }
-            else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
-                bam = BamFile(bam, bai)
-            }
-            else{
-                bam = BamFile(bam)
-            }
+            if (file.exists(paste(bam, 'bai', sep = '.')))
+                bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
+            else if (file.exists(gsub('.bam$', '.bai', bam)))
+                bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
+            else
+                stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
         }
-        else{
-            bam = BamFile(bam, index = bai)
-        }
-    }
-
-    if (length(intervals)==0){
-        intervals = NULL
-    }
-
-    if (is.null(intervals))
-    {
-        if (all == TRUE){
-            intervals = si2gr(seqinfo(bam))
-        }
-        else{
-            stop('Error: Input "interval" is NULL with "all=FALSE". If "intervals" unspecified and "all=TRUE", "read.bam()" will load entire BAM. Otherwise, users must provide non-empty interval list. Please see documentation for details.')
-        }
-    }
-
-    if (class(intervals) == 'data.frame'){
-        intervals = seg2gr(intervals);
-    }
-
-    if (inherits(intervals, 'GRangesList')){
-        intervals = unlist(intervals);
-    }
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
     
@@ -597,11 +576,15 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 #' $left.clips number of "left" soft clips (e.g. cigar 12S89M), 
 #' or appends these fields to the reads object
 #'
-#' @param reads GenomicRanges or GappedAlignments holding the reads
-#' @param hard boolean Option counts hard clips (default == FALSE)
+#' @param reads GenomicRanges or GappedAlignments or data.frame or data.table holding the reads
+#' @return GRanges with 'right.clips' and 'left.clips' columns added
 #' @export
-count.clips = function(reads, hard = FALSE)
+count.clips = function(reads)
 {
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
+        stop('Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.')
+    }
+
     if (length(reads) == 0){
         return(reads)
     }
@@ -990,7 +973,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #'
 #' If use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
 #'
-#' @param reads Granges input reads
+#' @param reads GenomicRanges or GappedAlignments or data.frame input reads
 #' @param verbose boolean verbose flag (default == TRUE)
 #' @param fast boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default == TRUE)
 #' @param use.D boolean Treats "D" tags as deletions, along with "N" tags (default == TRUE)
@@ -1000,6 +983,18 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
+
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
+        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
+    }
+    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
+        stop('Error: Reads must have cigar and seq fields specified. Please see documentation for details.')
+    }
+
+    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
+        stop('Error: Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object. Please see documentation for details.')
+    }
+
     nreads = length(reads)
 
     if (nreads==0){
@@ -1049,19 +1044,6 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             md = rep(NA, length(cigar))
         }
     }
-
-
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
-        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
-    }
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
-        stop('Error: Reads must have cigar and seq fields specified. Please see documentation for details.')
-    }
-
-    if (!inherits(cigar, 'character') & !inherits(cigar, 'character') & !inherits(md, 'character')){
-        stop('Error: Input must be GRanges with seq, cigar, and MD fields populated or GappedAlignments object. Please see documentation for details.')
-    }
-
 
     ix = which(!is.na(reads$cigar))
 
@@ -1250,7 +1232,7 @@ bamflag = function(reads)
 #' Outputs a tag that cats 'qname', first vs first second mate +/- secondary alignment +/- gr.string
 #' to give an identifier for determine duplicates in a read pile
 #'
-#' @param reads GenomicRanges holding the reads
+#' @param reads GenomicRanges or GappedAlignments or data.frame holding the reads
 #' @param secondary boolean including secondary alignment(s) (default == FALSE)
 #' @param gr.string boolean input reads into gr.string() (default == FALSE)
 #' @export
@@ -1259,9 +1241,10 @@ bamtag = function(reads, secondary = FALSE, gr.string = FALSE)
     if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
         stop('Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.')
     }
+
     grs = sec = NULL
     if (secondary){
-        sec = bamflag(read$flag[, 'isNotPrimaryRead'])
+        sec = bamflag(reads$flag)[, 'isNotPrimaryRead']
     }
 
     if (gr.string){

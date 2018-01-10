@@ -7,7 +7,7 @@
 bamtag(reads, secondary = FALSE, gr.string = FALSE)
 }
 \arguments{
-\item{reads}{GenomicRanges holding the reads}
+\item{reads}{GenomicRanges or GappedAlignments or data.frame holding the reads}
 
 \item{secondary}{boolean including secondary alignment(s) (default == FALSE)}
 

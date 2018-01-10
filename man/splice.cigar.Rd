@@ -8,7 +8,7 @@ splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
   rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 }
 \arguments{
-\item{reads}{Granges input reads}
+\item{reads}{GenomicRanges or GappedAlignments or data.frame input reads}
 
 \item{verbose}{boolean verbose flag (default == TRUE)}
 
