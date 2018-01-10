@@ -1059,11 +1059,11 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     if (fast){
         ir = cigarRangesAlongReferenceSpace(reads[ix]$cigar, N.regions.removed = FALSE, with.ops = TRUE, reduce.ranges = FALSE)
         irul = unlist(ir)
-        out.gr = GRanges(rep(seqnames(reads)[ix], elementLengths(ir)), shift(IRanges(irul), rep(start(reads)[ix]-1, elementLengths(ir))),
-                         strand = rep(strand(reads)[ix], elementLengths(ir)), seqlengths = seqlengths(reads))
+        out.gr = GRanges(rep(seqnames(reads)[ix], elementNROWS(ir)), shift(IRanges(irul), rep(start(reads)[ix]-1, elementNROWS(ir))),
+                         strand = rep(strand(reads)[ix], elementNROWS(ir)), seqlengths = seqlengths(reads))
         out.gr$type = names(irul)
-        out.gr$rid = ix[rep(1:length(ir), elementLengths(ir))]
-        out.gr$riid = unlist(lapply(elementLengths(ir), function(x) 1:x))
+        out.gr$rid = ix[rep(1:length(ir), elementNROWS(ir))]
+        out.gr$riid = unlist(lapply(elementNROWS(ir), function(x) 1:x))
         out.gr$fid = r.id[out.gr$rid]
         out.gr$qname = reads$qname[out.gr$rid]
 

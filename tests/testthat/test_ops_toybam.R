@@ -194,10 +194,10 @@ test_that('countCigar', {
 
 
 
-test_that('is.paired.end', {
-    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
-    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
-})
+##test_that('is.paired.end', {
+##    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
+##    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
+##})
 
 
 ##print("done")  ### remove
