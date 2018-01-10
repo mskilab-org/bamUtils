@@ -114,12 +114,17 @@ test_that('count.clips', {
 
 
 test_that('splice.cigar', {
+	## check input
+	expect_error(splice.cigar('foo'))
+	expect_error(splice.cigar(example_bam))
     ## check default
     expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))), 2) 
     expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]), 5)  
     expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]), 4)  
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$type[1], 'M') 
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$type[2], 'I') 
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$type[2], 'D')
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$type[4], 'S')
     expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[1], 59)
     expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[2], 0)
     expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]])[3], 3)
@@ -130,6 +135,20 @@ test_that('splice.cigar', {
     expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$fid[1], 2)
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]$qname[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893')
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[2]]$qname[1], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396')
+    ## fast = FALSE
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast = FALSE)[[2]]), 2)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]])[1], 55)
+    expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]])[2], 69)
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$type[1], 'M')
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$type[2], 'M')
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$fid[1], 2)
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$fid[2], 2)
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$rid[1], 2)
+    expect_equal(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), fast=FALSE)[[2]]$rid[2], 2)
+    ## use.D = FALSE
+    expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), use.D = FALSE)[[1]])))  ## should be a 'riid' column in GRanges
+    expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')), use.D = FALSE)[[2]])))
+    ## tests for 'rem.soft' and 'get.seq'
 })
 
 

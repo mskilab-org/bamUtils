@@ -264,11 +264,11 @@ read.bam = function(bam, bai = NULL, intervals = NULL, all = FALSE, pairs.grl = 
 bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
-    if (missing(bam) | missing(gr)){
+    if (missing(bam) | missing(intervals)){
         stop("Error: arguments 'bam' and 'gr' are both required for 'bam.cov.gr'. Please see documentation for details.")
     }
-    if (!is(gr, "GRanges")){
-        stop("Error: Granges of intervals to retrieve 'gr' must be in the format 'GRanges'. Please see documentation for details.")
+    if (!is(intervals, "GRanges")){
+        stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
     }
 
     if (is.character(bam))
@@ -650,7 +650,7 @@ count.clips = function(reads)
 #' D = deletion --> varbase is empty
 #' X = mismatch --> varbase represents mismatched bases
 #'
-#' @param reads GenomicRanges to extract variants from
+#' @param reads GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from
 #' @param soft boolean Flag to include soft-clipped matches (default == TRUE)
 #' @param verbose boolean verbose flag (default == TRUE)
 #' @name varbase
@@ -676,7 +676,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         was.grl = FALSE
     }
 
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame')){
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame')  & !inherits(reads, 'data.table')){
         stop('Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.')
     }
 
@@ -850,7 +850,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
     if (any(na = is.na(md)))
     {
-        warning('MD field absent from one or more input reads')
+        warning('Warning: MD field absent from one or more input reads')
         good.md = which(!na)
     }
     ## now make GRanges of subs
@@ -983,6 +983,10 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
+        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
+    }
+
     nreads = length(reads)
 
     if (nreads==0){
@@ -1033,11 +1037,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         }
     }
 
-    
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
-        stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
-    }
-    else if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
+    if (is.null(values(reads)$cigar) | is.null(values(reads)$seq)){
         stop('Error: Reads must have cigar and seq fields specified. Please see documentation for details.')
     }
 
