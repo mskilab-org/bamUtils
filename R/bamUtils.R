@@ -348,7 +348,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, region = NULL, do.gc = FALSE, midpoint = TRUE)
 {
-    s
+    cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
     sl = seqlengths(BamFile(bam.file))
 
