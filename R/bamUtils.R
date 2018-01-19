@@ -392,7 +392,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
     st = Sys.time()
     if (verbose){
-        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and insert size limit', max.tlen, 'with midpoint set to', midpoint, '\n')
+        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, 'with midpoint set to', midpoint, '\n')
     }
 
     while (length(chunk <- readLines(p, n = chunksize)) > 0)
@@ -461,17 +461,17 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
 
 
-#' @name counts2rpkm
-#' @title Compute rpkm counts from counts
-#' @description
-#'
-#' Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
-#'
-#' @param counts GRanges, data.table or data.frame with records, width fields
-#' @param by string Field to group counts by
-#' @note The denominator (i.e. total reads) is just the sum of counts$records
-#' @return TO BE DONE
-#' @export
+## #' @name counts2rpkm
+## #' @title Compute rpkm counts from counts
+## #' @description
+## #'
+## #' Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
+## #'
+## #' @param counts GRanges, data.table or data.frame with records, width fields
+## #' @param by string Field to group counts by
+## #' @note The denominator (i.e. total reads) is just the sum of counts$records
+## #' @return TO BE DONE
+## #' @export
 counts2rpkm = function(counts, by)
 {
     if (missing(counts) | missing(by)){
@@ -486,16 +486,18 @@ counts2rpkm = function(counts, by)
 
 
 
-#' @name get.pairs.grl
-#' @title Get coverage as GRanges from BAM on custom set of GRanges
-#' @description
-#'
-#' Takes reads object and returns GRangesList with each read and its mate (if exists)
-#'
-#' @param reads GRanges holding reads
-#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
-#' @param verbose boolean verbose flag (default == FALSE)
-#' @export
+## MISSING get.mate.gr()
+
+## #' @name get.pairs.grl
+## #' @title Get coverage as GRanges from BAM on custom set of GRanges
+## #' @description
+## #'
+## #' Takes reads object and returns GRangesList with each read and its mate (if exists)
+## #'
+## #' @param reads GRanges holding reads
+## #' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
+## #' @param verbose boolean verbose flag (default == FALSE)
+## #' @export
 get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 {
     isdt = inherits(reads, 'data.table')
@@ -523,7 +525,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
     if (!inherits(reads, 'GenomicRanges') && !inherits(reads, 'data.table'))
     {
         if (verbose){
-            cat('converting to granges\n')
+            cat('converting to GRanges\n')
         }
         r.gr = granges(reads)
     }
@@ -898,8 +900,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     ends.seq = ends.seq[is.var]
     str <- str[iix] 
 
-    if (length(cigar.vals)>0)
-    {
+    if (length(cigar.vals)>0){
+        
         var.seq = lapply(1:length(cigar.vals),
                          function(i){                                 
                             if (ends.seq[i]<starts.seq[i])

@@ -97,6 +97,17 @@ test_that('read.bam', {
 })
 
 
+### bam.cov.gr
+
+
+### bam.cov.tile
+
+
+### get.pairs.grl --- currently non-exported
+##  missing code, get.mate.gr() in get.pairs.grl
+## Needed for read.bam() as well
+
+
 
 
 test_that('count.clips', {
@@ -109,6 +120,9 @@ test_that('count.clips', {
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$left.clips[1], 0)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$left.clips[2], 0)  
 })
+
+
+## varbase
 
 
 
@@ -240,6 +254,4 @@ test_that('countCigar', {
 ##    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
 ##})
 
-
-##print("done")  ### remove
 
