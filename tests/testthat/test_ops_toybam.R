@@ -27,8 +27,8 @@ example_bai = 'small.bam.bai'
 
 
 test_that('read.bam', {
-	## test 'all' FLAG
-	expect_error(read.bam(example_bam))  ## custom error message, all=FALSE by default
+    ## test 'all' FLAG
+    expect_error(read.bam(example_bam))  ## custom error message, all=FALSE by default
     expect_equal(length(read.bam(example_bam, all=TRUE)), 97383)   ## read in entire BAM
     expect_true(is(read.bam(example_bam, all=TRUE), 'GenomicRanges'))   ## check that output is "GRanges" if as.data.table == FALSE (default)
     expect_equal(ncol(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 16) ## data.table == NULL, should have ncol == 16
@@ -111,10 +111,10 @@ test_that('read.bam', {
 
 
 test_that('count.clips', {
-	## check errors
-	expect_error(count.clips('foo'))
-	expect_error(count.clips(example_bam)) 
-	## default
+    ## check errors
+    expect_error(count.clips('foo'))
+    expect_error(count.clips(example_bam)) 
+    ## default
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$right.clips[1], 0)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$right.clips[2], 3)   
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))$left.clips[1], 0)
@@ -128,9 +128,9 @@ test_that('count.clips', {
 
 
 test_that('splice.cigar', {
-	## check input
-	expect_error(splice.cigar('foo'))
-	expect_error(splice.cigar(example_bam))
+    ## check input
+    expect_error(splice.cigar('foo'))
+    expect_error(splice.cigar(example_bam))
     ## check default
     expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))), 2) 
     expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100')))[[1]]), 5)  
@@ -169,7 +169,7 @@ test_that('splice.cigar', {
 
 
 test_that('bamflag', {
-	## isPaired  1 1
+    ## isPaired  1 1
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isPaired[1], 1)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))))$isPaired[2], 1)
     ## isProperPair  0 0 
@@ -211,10 +211,10 @@ test_that('bamflag', {
 
 
 test_that('bamtag', {
-	## check errors
-	expect_error(bamtag('foo'))
-	expect_error(bamtag(example_bam)) 
-	## default
+    ## check errors
+    expect_error(bamtag('foo'))
+    expect_error(bamtag(example_bam)) 
+    ## default
     expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')))[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1__')
     expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('chr1:10075-10100')))[2], 'ST-K00126:2:H5LWTBBXX:7:2112:7720:6396_1__')   
     ## 'secondary' == TRU#
