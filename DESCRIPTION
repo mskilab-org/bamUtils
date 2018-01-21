@@ -10,7 +10,11 @@ Depends:
     data.table (>= 1.9),
     GenomicRanges,
     GenomicAlignments, 
-    Rsamtools (>= 1.18)
-License: What license is it under?
+    Rsamtools (>= 1.18),
+    gUtils
+Suggests:
+    testthat
+License: GPL-2
+BugReports: http://github.com/mskilab/bamUtils/issues
 LazyData: true
-RoxygenNote: 6.0.1
+RoxygenNote: 6.0.1.9000
