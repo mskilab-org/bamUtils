@@ -52,7 +52,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     isNotPassingQualityControls = NA,
                     isDuplicate = F,
                     isValidVendorRead = TRUE,
-                    as.grl=TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
+                    pairs.grl.split = TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
                     as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
                     ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
                     ... # passed to scanBamFlag (
@@ -182,6 +182,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             }
             return(x)
         })))
+
         ## faster CIGAR string parsing with vectorization and data tables
         if (verbose){
             print(Sys.time() - now)
@@ -217,14 +218,14 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             out$strand[unm] = '*'
         }
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
-        vals = out[, setdiff(names(out), gr.fields)]
+        vals = out[, setdiff(names(out), gr.fields), with = FALSE]
 
         if (all) {
             out$rname = ifelse(is.na(out$rname), "All_Unmapped", out$rname)
         }
 
         if (!as.data.table) {
-            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
+            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals2))
             values(out) <- vals;
         } else {
             out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
@@ -235,7 +236,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
     }
     else {
         if (!as.data.table){
-            return(GRanges(seqlengths = seqlengths(intervals)))  ### should be empty
+            return(GRanges(seqlengths = seqlengths(intervals2)))  ### should be empty
         }
         else{
             return(data.table())  ## return empty data.table
@@ -619,8 +620,6 @@ get.mate.gr = function(reads)
 }
 
 
-
-
 #' @name get.pairs.grl
 #' @title Get coverage as GRanges from BAM on custom set of GRanges
 #' @description
@@ -679,7 +678,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
         m.val = values(m.gr)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
-        mcols(r.gr) = rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col)], m.val)
+        mcols(r.gr) = rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col), drop = FALSE], m.val)
     } 
     else if (isdt) {
         m.gr = m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with = FALSE]
@@ -1118,9 +1117,12 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
-    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GRangesList')& !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame') & !inherits(reads, 'data.table')){
         stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
     }
+
+    if (inherits(reads, 'GRangesList'))
+      reads = unlist(reads)
 
     nreads = length(reads)
 
@@ -1195,8 +1197,8 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     if (fast){
         ir = cigarRangesAlongReferenceSpace(reads[ix]$cigar, N.regions.removed = FALSE, with.ops = TRUE, reduce.ranges = FALSE)
         irul = unlist(ir)
-        out.gr = GRanges(rep(seqnames(reads)[ix], elementLengths(ir)), IRanges::shift(IRanges(irul), rep(start(reads)[ix]-1, elementLengths(ir))),
-                         strand = rep(strand(reads)[ix], elementLengths(ir)), seqlengths = seqlengths(reads))
+        out.gr = GRanges(rep(seqnames(reads)[ix], elementNROWS(ir)), IRanges::shift(IRanges(irul), rep(start(reads)[ix]-1, elementNROWS(ir))),
+                         strand = rep(strand(reads)[ix], elementNROWS(ir)), seqlengths = seqlengths(reads))
         out.gr$type = names(irul)
         out.gr$rid = ix[rep(1:length(ir), elementNROWS(ir))]
         out.gr$riid = unlist(lapply(elementNROWS(ir), function(x) 1:x))
