@@ -461,43 +461,69 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
 
 
-## #' @name counts2rpkm
-## #' @title Compute rpkm counts from counts
-## #' @description
-## #'
-## #' Takes 'Rsamtools::countBam()'' (or 'bam.cov.gr()') output "counts" and computes RPKM by aggregating across "by" variable
-## #'
-## #' @param counts GRanges, data.table or data.frame with records, width fields
-## #' @param by string Field to group counts by
-## #' @note The denominator (i.e. total reads) is just the sum of counts$records
-## #' @return TO BE DONE
-## #' @export
-counts2rpkm = function(counts, by)
+#' @name get.mate.gr
+#' @title returns GRanges corresponding to mates of reads
+#' @description
+#'
+#' Inputs GRanges or data.frame/data.table of reads. Outputs GRanges corresponding to mates of reads.
+#'
+#' @param reads GRanges or data.table/data.frame Input reads
+#' @return \code{GRanges} corresponding to mates of reads
+#' @name get.mate.gr
+#' @export
+get.mate.gr = function(reads)
 {
-    if (missing(counts) | missing(by)){
-        stop('Error: "counts2rpkm()" requires both arguments "counts" and "by". Please see documentation for details.')
+    if (inherits(reads, 'GRanges')) {
+        mpos = values(reads)$mpos
+        mrnm = as.vector(values(reads)$mrnm)
+        mapq = values(reads)$MQ
+        bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
+        mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (i.e. as if unmapped)
+    } 
+    else if (inherits(reads, 'data.table')) {
+        mpos <- reads$mpos
+        mrnm <- reads$mrnm
+        mapq = reads$MQ
+        bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
+        mrnm[bad.chr] <- reads$seqnames[bad.chr]
     }
-    out = aggregate(1:nrow(counts), by = list(by), FUN = function(x) sum(counts$records[x])/sum(counts$width[x]/1000))
-    out[,2] = out[,2] / sum(counts$records) * 1e6
-    names(out) = c('by', 'rpkm')
-    return(out)
+
+    if (inherits(reads, 'GappedAlignments')){
+        mwidth = qwidth(reads)
+    }
+    else{
+        mwidth = reads$qwidth
+        mwidth[is.na(mwidth)] = 0
+    }
+
+    mwidth[is.na(mpos)] = 0
+    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
+    mpos[is.na(mpos)] = 1;
+
+    if (inherits(reads, 'GappedAlignments')){
+        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    }
+    else if (inherits(reads, 'GRanges')){
+        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    }
+    else if (inherits(reads, 'data.table')){
+        ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
+    }
 }
 
 
 
 
-## MISSING get.mate.gr()
-
-## #' @name get.pairs.grl
-## #' @title Get coverage as GRanges from BAM on custom set of GRanges
-## #' @description
-## #'
-## #' Takes reads object and returns GRangesList with each read and its mate (if exists)
-## #'
-## #' @param reads GRanges holding reads
-## #' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
-## #' @param verbose boolean verbose flag (default == FALSE)
-## #' @export
+#' @name get.pairs.grl
+#' @title Get coverage as GRanges from BAM on custom set of GRanges
+#' @description
+#'
+#' Takes reads object and returns GRangesList with each read and its mate (if exists)
+#'
+#' @param reads GRanges holding reads
+#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
+#' @param verbose boolean verbose flag (default == FALSE)
+#' @export
 get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 {
     isdt = inherits(reads, 'data.table')
