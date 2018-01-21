@@ -1,6 +1,7 @@
 #' @import GenomicRanges
 #' @import GenomicAlignments
-
+#' @import data.table
+#' 
 
 #' @name read.bam
 #' @title read.bam
@@ -29,7 +30,6 @@
 #' @param as.grl Return reads as GRangesList. Controls whether \code{get.pairs.grl} does split. Default TRUE
 #' @param as.data.table Return reads in the form of a data.table rather than GRanges/GRangesList
 #' @param ignore.indels messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-#' @param size.limit Default 1e6
 #' @param ... passed to \code{scanBamFlag}
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
@@ -55,7 +55,6 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     as.grl=TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
                     as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
                     ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-                    size.limit = 1e6,
                     ... # passed to scanBamFlag (
                     )
 {
@@ -74,9 +73,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             bam = BamFile(bam, index = bami)
     }
 
-
-                                        # if intervals unspecified will try to pull down entire bam file (CAREFUL)
-
+     # if intervals unspecified will try to pull down entire bam file (CAREFUL)
     if (length(intervals)==0)
         intervals = NULL
 
@@ -85,8 +82,10 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 
     if (is.null(intervals))
     {
-        if (all)
+        if (all) {
             intervals = si2gr(seqinfo(bam))
+            intervals = c(intervals, GRanges("All_Unmapped", IRanges(-1e6, 1e6)))
+        }
         else
             stop('Must provide non empty interval list')
     }
@@ -102,6 +101,7 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 
     intervals = reduce(intervals);
 
+    
     now = Sys.time();
 
     if (pairs.grl)
@@ -112,7 +112,19 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
-    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
+
+    intervals2 = gr.fix(intervals, bam, drop = T)
+
+    
+    if (length(intervals2)==0)
+        stop('Requested interval does not intersect the seqinfo of the BamFile')
+    if (all) {
+        param = ScanBamParam(what = what, flag = flag, tag = tag)
+    } else {
+        param = ScanBamParam(which = intervals2, 
+                             what = what, flag = flag, tag = tag)
+    }
+    
 
     if (verbose)
         cat('Reading bam file\n')
@@ -188,6 +200,10 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
         }
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
         vals = out[, setdiff(names(out), gr.fields)]
+
+        if (all) {
+            out$rname = ifelse(is.na(out$rname), "All_Unmapped", out$rname)
+        }
 
         if (!as.data.table) {
             out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
@@ -277,7 +293,6 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
         }
 
     keep = which(as.character(seqnames(gr)) %in% seqlevels(bam))
-    
     if (length(keep)>0)
     {
         ix = c(keep[c(seq(1, length(keep), chunksize))], keep[length(keep)]+1);  ## prevent bam error from improper chromosomes
@@ -294,9 +309,8 @@ bam.cov.gr = function(bam, gr, bami = NULL, count.all = FALSE, isPaired = T, isP
                                  function(x) {
                                      if (verbose)
                                          cat(sprintf('Processing ranges %s to %s of %s, extracting %s bases\n', ix[x], ix[x+1]-1, length(keep), sum(width(gr.chunk[[x]]))))
-                                     as.data.table(countBam(bam, param = ScanBamParam(which = gr.chunk[[x]], flag = flag)))
+                                     as.data.table(countBam(bam, param = ScanBamParam(which = dt2gr(gr2dt(gr.chunk[[x]]), seqlengths = seqlengths(bam)), flag = flag)))
                                  }, mc.cores = mc.cores));
-
         gr.tag = paste(as.character(seqnames(gr)), start(gr), end(gr));
         out.tag = paste(out$space, out$start, out$end);
         ix = match(gr.tag, out.tag);
@@ -355,7 +369,8 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
             {
                 .TMP.DIR = '~/temp/.samtools'
                 system(paste('mkdir -p', TMP.DIR))
-                tmp.fn = paste(normalizePath(TMP.DIR), '/tmp', runif(1), sep = '')
+                tstamp = gsub("[\\:\\-]", "", gsub("\\s", "_", Sys.time()))
+                tmp.fn = paste(normalizePath(TMP.DIR), '/tmp', tstamp, sep = '')
                 system(sprintf('ln -s %s %s.bam', bam.file, tmp.fn))
                 system(sprintf('ln -s %s %s.bam.bai', bai.file, tmp.fn))
             }
@@ -443,6 +458,76 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     return(gr)
 }
 
+
+
+#' Calls samtools mpileup to dump tsv of "one off" variants / sites (i.e. that are present in exactly one read per site)
+#'
+#' @param out.file file to dump tsv to 
+#' @param bam bam file path
+#' @param ref fasta path
+#' @param min.bq integer minimum base quality
+#' @param min.mq integer minimum mapping quality
+#' @param indel logical flag whether to collect one off indels (default is substitution)
+#' @param chunksize number of mpileup lines to put into memory
+#' @param verbose logical flag 
+#' @note The denominator (ie total reads) is just the sum of counts$records
+#' @export
+oneoffs = function(out.file, bam, ref, min.bq = 30, min.mq = 60, indel = FALSE, chunksize = 1e4, verbose = TRUE)
+{   
+  if (indel)
+    cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[\\+\\-]\\d+[ACGTNacgtn]+[\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
+    else
+      cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[ACGTacgt][\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
+  
+  p = pipe(cmd, open = 'r')
+
+  start = Sys.time()
+  fields = c('chr', 'pos', 'ref', 'cov', 'alt', 'bq', 'mq')
+
+  i = nv = nl = 0
+  while (length(chunk <- readLines(p, n = chunksize))>0)
+  {
+    tab = fread(paste(chunk, collapse = '\n'), sep = '\t', header = FALSE)
+    setnames(tab, fields)
+    tab[ ,varnum := 1:.N]
+
+    if (indel)
+    {
+      tab[, left.pad := nchar(gsub("[\\+\\-].*", '', alt))]
+      tab[, wid := as.numeric(gsub('.*([\\+\\-]\\d+).*', '\\1', alt))]
+      tab[, var := mapply(function(x,i) substr(x, 1, i),
+                          gsub('.*[\\+\\-]\\d+([ACGTNacgtn]+).*', '\\1', alt),
+                          abs(wid))]
+      tab[wid>0, bq := mapply(function(x, i) substr(x, i, i), bq, wid)]
+      tab[wid<0, bq := NA]
+      varb = tab[, .(chr, pos, alt, wid, mq = NA, bq = NA)]                          
+    }
+    else
+      varb = tab[, .(chr = chr, pos = pos, alt = unlist(strsplit(alt, '')),
+                     wid = 0,
+                     bq = utf8ToInt(unlist(strsplit(bq, '')))-33,
+                     mq = utf8ToInt(unlist(strsplit(mq, '')))-33), by = varnum][!(alt %in% c(".", ",")), ]
+    
+    fwrite(varb, out.file, append = (i>0))
+    nv = nv + nrow(varb)
+    nl = nl + length(chunk)
+    i = i+1
+    if (verbose)
+    {
+      message('Wrote total of ',
+              nl, ' variants to ", out.file, ". Now at coordinate ',
+              varb[nrow(varb), sprintf("chr%s %s", chr, prettyNum(pos, ','))])
+      print(Sys.time() - start)
+    }
+  }
+  
+  close(p)
+  if (verbose)
+    message('Done writing ', out.file)
+}
+
+
+
 #' Compute rpkm counts from counts
 #'
 #' takes countbam (or bam.cov.gr) output "counts" and computes rpkm by aggregating across "by" variable
@@ -522,6 +607,48 @@ get.pairs.grl = function(reads, as.grl = TRUE, verbose = F)
         return(r.gr)
     }
 }
+
+rrbind2 = function(..., union = T, as.data.table = FALSE)
+{
+    dfs = list(...);  # gets list of data frames
+    dfs = dfs[!sapply(dfs, is.null)]
+    dfs = dfs[sapply(dfs, ncol)>0]
+    names.list = lapply(dfs, names);
+    cols = unique(unlist(names.list));
+    unshared = lapply(names.list, function(x) setdiff(cols, x));
+    ix = which(sapply(dfs, nrow)>0)
+    ## only call expanded dfs if needed
+    if (any(sapply(unshared, length) != 0))
+        expanded.dts <- lapply(ix, function(x) {
+            tmp = dfs[[x]]
+            if (is.data.table(dfs[[x]]))
+                tmp = as.data.frame(tmp)
+            tmp[, unshared[[x]]] = NA;
+            return(as.data.table(as.data.frame(tmp[, cols])))
+        })
+    else
+        expanded.dts <- lapply(dfs, function(x) as.data.table(as.data.frame(x)))
+
+    ## convert data frames (or DataFrame) to data table.
+    ## need to convert DataFrame to data.frmae for data.table(...) call.
+    ## structure call is way faster than data.table(as.data.frame(...))
+    ## and works on data.frame and DataFrame
+                                        #    dts <- lapply(expanded.dfs, function(x) structure(as.list(x), class='data.table'))
+                                        #   rout <- data.frame(rbindlist(dts))
+
+    rout <- rbindlist(expanded.dts)
+    if (!as.data.table)
+        rout = as.data.frame(rout)
+
+    if (!union)
+    {
+        shared = setdiff(cols, unique(unlist(unshared)))
+        rout = rout[, shared];
+    }
+
+    return(rout)
+}
+
 
 #' count.clips
 #'
@@ -711,7 +838,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
                                         # split md string into chars after removing "deletion" signatures and also
                                         # any soft clipped base calls (bases followed by a 0)
     ##    md.vals = strsplit(gsub('([ATGCN])', '|\\1|', gsub('\\^[ATGCN]+', '|', md)), '\\|')
-    md.vals = strsplit(gsub('([A-Z])', '|\\1|', gsub('\\^[A-Z]+', '|', md)), '\\|')
+    md.vals = strsplit(gsub('([a-zA-Z])', '|\\1|', gsub('\\^[a-zA-Z]+', '|', md)), '\\|')
 
                                         # ranges of different cigar elements relative to query ie read-centric coordinates
     starts.seq = lapply(1:length(cigar.lens), function(i)
@@ -753,7 +880,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     {
         x = md.vals[[i]]
                                         #        nix = grepl('[ATGCN]', x);
-        nix = grepl('[A-Z]', x);
+        nix = grepl('[a-zA-Z]', x);
         if (!any(nix))
             return(c())
         p = rep(0, length(x))
@@ -783,7 +910,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
     if (is.null(seq))
-        subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCN]', value = T), function(x) rep('X', length(x))) ## replace with N
+        subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCNatcgn]', value = T), function(x) rep('X', length(x))) ## replace with N
     else        
         subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
 
@@ -793,7 +920,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
                                         # also some MD are NA
     mlen.cigar = sapply(1:length(ends.seq), function(x) {mix = cigar.vals[[x]]=='M'; sum(ends.seq[[x]][mix]-starts.seq[[x]][mix]+1)})
                                         #    mlen.md = sapply(md.vals, function(x) {ix = grepl('[ATGCN]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
-    mlen.md = sapply(md.vals, function(x) {ix = grepl('[A-Z]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
+    mlen.md = sapply(md.vals, function(x) {ix = grepl('[a-zA-Z]', x); sum(as.numeric(x[!ix])) + sum(nchar(x[ix]))})
     good.md = which(!is.na(md))
                                         #  good.md = which(mlen.md == mlen.cigar & !is.na(md))
 
@@ -987,7 +1114,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     {
         ir = cigarRangesAlongReferenceSpace(reads[ix]$cigar, N.regions.removed = FALSE, with.ops = TRUE, reduce.ranges = FALSE)
         irul = unlist(ir)
-        out.gr = GRanges(rep(seqnames(reads)[ix], elementLengths(ir)), shift(IRanges(irul), rep(start(reads)[ix]-1, elementLengths(ir))),
+        out.gr = GRanges(rep(seqnames(reads)[ix], elementLengths(ir)), IRanges::shift(IRanges(irul), rep(start(reads)[ix]-1, elementLengths(ir))),
                          strand = rep(strand(reads)[ix], elementLengths(ir)), seqlengths = seqlengths(reads))
         out.gr$type = names(irul)
         out.gr$rid = ix[rep(1:length(ir), elementLengths(ir))]
@@ -1232,6 +1359,10 @@ get.varcol = function()
 #' Check if bam file is paired end by using 0x1 flag
 #' 
 #' @name is.paired.end
+#'
+#'
+#'
+#'
 #' @export
 is.paired.end = function(bams)
     {
@@ -1252,3 +1383,54 @@ is.paired.end = function(bams)
     }
 
 
+
+#' Create GRanges of read mates from reads
+#'
+#' @return \code{GRanges} corresponding to mates of reads
+#' @name get.mate.gr
+#' @export
+get.mate.gr = function(reads)
+{
+
+    if (inherits(reads, 'GRanges')) {
+        mpos = values(reads)$mpos
+        mrnm = as.vector(values(reads)$mrnm)
+        mapq = values(reads)$MQ
+        bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
+        mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
+    } else if (inherits(reads, 'data.table')) {
+        mpos <- reads$mpos
+        mrnm <- reads$mrnm
+        mapq = reads$MQ
+        bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
+        mrnm[bad.chr] <- reads$seqnames[bad.chr]
+    }
+
+    if (inherits(reads, 'GappedAlignments'))
+        mwidth = qwidth(reads)
+    else
+    {
+        mwidth = reads$qwidth
+        mwidth[is.na(mwidth)] = 0
+    }
+
+    mwidth[is.na(mpos)] = 0
+    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
+    mpos[is.na(mpos)] = 1;
+
+    if (inherits(reads, 'GappedAlignments'))
+        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    else if (inherits(reads, 'GRanges'))
+        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
+    else if (inherits(reads, 'data.table'))
+        ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
+}
+
+
+alpha = function(col, alpha)
+{
+  col.rgb = col2rgb(col)
+  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
+  names(out) = names(col)
+  return(out)
+}
