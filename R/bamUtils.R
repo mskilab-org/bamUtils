@@ -36,7 +36,7 @@
 read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     gr = intervals,
                     all = FALSE,
-                    bami = NULL,
+                    bai = NULL,
                     pairs.grl = TRUE, # if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
                                         #  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
                                         #  gappedAlignment = T, # if false just read alignments using scanbam
