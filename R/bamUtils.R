@@ -650,7 +650,8 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
             cat('done\n')
             print(paste0('Total time to complete: ', Sys.time() - now))
         }
-        if (pairs.grl.split && !as.data.table){
+        if
+        (pairs.grl.split && !as.data.table){
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -1855,6 +1856,11 @@ is.paired.end = function(bams)
 
 
 
+
+#' @name is.paired.end
+#' @title Check if BAM file is paired end by using 0x1 flag
+#' @description
+#'
 #' Create GRanges of read mates from reads
 #'
 #' @return \code{GRanges} corresponding to mates of reads
@@ -1869,7 +1875,8 @@ get.mate.gr = function(reads)
         mapq = values(reads)$MQ
         bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
         mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
-    } else if (inherits(reads, 'data.table')) {
+    } 
+    else if (inherits(reads, 'data.table')) {
         mpos <- reads$mpos
         mrnm <- reads$mrnm
         mapq = reads$MQ
@@ -1877,10 +1884,10 @@ get.mate.gr = function(reads)
         mrnm[bad.chr] <- reads$seqnames[bad.chr]
     }
 
-    if (inherits(reads, 'GappedAlignments'))
+    if (inherits(reads, 'GappedAlignments')){
         mwidth = qwidth(reads)
-    else
-    {
+    }
+    else{
         mwidth = reads$qwidth
         mwidth[is.na(mwidth)] = 0
     }
@@ -1889,13 +1896,20 @@ get.mate.gr = function(reads)
     mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
     mpos[is.na(mpos)] = 1;
 
-    if (inherits(reads, 'GappedAlignments'))
+    if (inherits(reads, 'GappedAlignments')){
         GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'GRanges'))
+    }
+    else if (inherits(reads, 'GRanges')){
         GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    else if (inherits(reads, 'data.table'))
+    }
+    else if (inherits(reads, 'data.table')){
         ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
+    }
 }
+
+
+
+
 
 
 alpha = function(col, alpha)
