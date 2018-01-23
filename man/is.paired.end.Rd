@@ -2,6 +2,7 @@
 % Please edit documentation in R/bamUtils.R
 \name{is.paired.end}
 \alias{is.paired.end}
+\alias{is.paired.end}
 \alias{get.mate.gr}
 \title{Check if BAM file is paired end by using 0x1 flag}
 \usage{
