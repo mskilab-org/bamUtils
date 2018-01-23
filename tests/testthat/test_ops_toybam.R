@@ -1,6 +1,7 @@
 ## tests on mskilab/bamUtils/tests/testthat/toy.bam and index
 
 library(bamUtils)
+library(gUtils)
 ##library(testthat)  ## remove
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
@@ -15,6 +16,11 @@ context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 example_bam = 'small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 example_bai = 'small.bam.bai' 
 
+## example_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+## example_bai = 'smallHCC1143BL.bam.bai' 
+
+
+
 ## example_bam = './tests/testthat/small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/small.bam.bai'
 
@@ -28,7 +34,7 @@ example_bai = 'small.bam.bai'
 
 test_that('read.bam', {
     ## test 'all' FLAG
-    expect_error(read.bam(example_bam))  ## custom error message, all=FALSE by default
+    expect_error(read.bam(example_bam))  ## Error in read.bam(example_bam) : Must provide non empty interval list
     expect_equal(length(read.bam(example_bam, all=TRUE)), 97383)   ## read in entire BAM
     expect_true(is(read.bam(example_bam, all=TRUE), 'GenomicRanges'))   ## check that output is "GRanges" if as.data.table == FALSE (default)
     expect_equal(ncol(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 16) ## data.table == NULL, should have ncol == 16
