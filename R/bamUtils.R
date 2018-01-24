@@ -5,397 +5,11 @@
 #' @import gUtils
 
  
-#' @name varcount
-#' @title Wrapper around applyPileups
-#' @description 
-#'
-#' takes in vector of bam paths, GRanges corresponding to sites / territories to query,
-#' and outputs a list with fields
-#' $counts = 3D matrix of base counts
-#' (A, C, G, T, N) x sites x bams subject to mapq and baseq thresholds
-#  $gr = output ranges corresponding to "sites" columns of output
-#'#' 
-#'
-#' (uses varbase)
-#'
-#'
-#' ... = other args go to read.bam
-#' @param bams character vector of paths to bam files
-#' @param gr granges of (width 1) sites ie intervals at which to compute base coujnts
-#' @param min.mapq minimal mapping quality at which to compute bases
-#' @param max.baseq minimal base qualitya t which to compute bases
-#' @param max.depth max read depth to consider
-#' @param indel logical flag whether to consider indels (default FALSE)
-#' @return input GRanges gr annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
-#' @author Marcin Imielinski
-#' @export
-varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, indel = F, ...)
-  {
-    require(abind)
-    require(Rsamtools)
-
-    out = list()
-
-    if (any(width(gr)!=1))
-      gr = gr.start(gr)
-
-    
-    if (is.character(bams))
-        {            
-            bami = gsub('\\.bam$', '.bai', bams)
-            ix = file.exists(bami)
-            if (any(!ix))
-                bami[!ix] = paste(bams[!ix], 'bai', sep = '.')
-            if (any(!file.exists(bami)))
-                stop('one or more BAM file indices missing')
-            fuck = mapply(function(bam, bai) BamFile(bam, index = bai), bams, bami, SIMPLIFY = FALSE)
-            bams = BamFileList(mapply(function(bam, bai) BamFile(bam, index = bai), bams, bami, SIMPLIFY = FALSE))
-#            bams = BamFile(bams, index = bami)
-        }
-    else if (is(bams, 'BamFile'))
-        bams = BamFileList(bams)
-    
-    ix = as.logical(as.character(seqnames(gr)) %in% seqlevels(bams))
-    if (any(ix))
-        {
-            pp = ApplyPileupsParam(which = gr[ix], what = c("seq"), minBaseQuality = min.baseq, minMapQuality = min.mapq, maxDepth = max.depth)
-            ## ## xtYao fix: function applyPileups fail at heterogeneous BAM seqlevels
-            ## ## do them separately and put back
-            ## if (length(bams)==2){
-            ##     if (identical(seqlengths(bams[1]), seqlengths(bams[2]))){
-            ##         pu = applyPileups(PileupFiles(bams), function(x) x, param = pp)
-            ##     } else {
-            ##         pu1 = applyPileups(PileupFiles(bams[1]), function(x) x, param = pp)
-            ##         pu2 = applyPileups(PileupFiles(bams[2]), function(x) x, param = pp)
-            ##         pu = lapply(which(ix),
-            ##                     function(ii){
-            ##                         out = list()
-            ##                         out$seqnames = pu1[[ii]]$seqnames
-            ##                         out$pos = pu1[[ii]]$pos
-            ##                         if (all(dim(pu1[[ii]]$seq)==dim(pu2[[ii]]$seq))){
-            ##                             out$seq = abind(pu1[[ii]]$seq, pu2[[ii]]$seq, along=2)
-            ##                             return(out)
-            ##                         } else {
-            ##                             return(NULL)
-            ##                         }
-            ##                     })
-            ##     }
-            ## } else {
-            pu = applyPileups(PileupFiles(bams), function(x) x, param = pp)
-            ## }
-        }
-
-    if (is(bams, 'BamFile') | is(bams, 'BamFileList'))
-        bam.paths = Rsamtools::path(bams)
-    else if (is(bams, 'BamFileList'))
-        bam.paths = sapply(bams, path)
-    else if (is(bams, 'list'))
-        bam.paths = sapply(bams, path)
-    else if (is(bams, 'character'))
-        bam.paths = bams
-
-    if (!indel)
-        {
-            cnames = c('A', 'C', 'G', 'T', 'N')
-            out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
-            if (any(ix))
-                {
-                    nna = sapply(pu, function(x) length(x$seq)>0)
-                    out$counts[,which(ix)[nna],] = aperm(do.call('abind', lapply(pu, function(x)
-                        {
-                            x$seq[cnames,,, drop = F]
-                        })), c(1,3,2))
-            }
-        }
-    else
-        {
-            cnames = unique(unlist(lapply(pu, function(x) rownames(x$seq))))
-            cnames = cnames[order(nchar(cnames), cnames)]
-            out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
-            if (any(ix))
-                {
-                nna = sapply(pu, function(x) length(x$seq)>0)
-                out$counts[,which(ix)[nna],] = aperm(do.call('abind', lapply(pu, function(x)
-                    {
-                        out = array(NA, dim = c(length(cnames), dim(x$seq)[2:3]), dimnames = list(cnames));
-                        out[rownames(x$seq),, ] = x$seq
-                    })), c(1,3,2))
-                        return(out)
-            }
-        }    
-    out$gr = gr
-    
-    return(out)    
-  }
-
-
-#' @name mafcount
-#' @title Wrapper around varcount adapted to tumor and normal "paired" bams
-#' @description 
-#' mafcount 
-#'
-#' Returns base counts for reference and alternative allele for an input tum and norm bam and maf data frame or GRAnges specifying substitutions
-#'
-#' maf is a single width GRanges describing variants and field 'ref' (or 'Reference_Allele'), 'alt' (or 'Tum_Seq_Allele1') specifying reference and alt allele.
-#' maf is assumed to have width 1 and strand is ignored.  
-#'
-#' @param tum.bam character scalar or BamFile specifying path to tumor sample
-#' @param norm.bam optional character scalar or BamFile specifying path to normal sample
-#' @param maf GRanges or data.frame or data.table of imported maf (i.e. output of read.delim or fread)
-#' @param chunk.size integer number of variants to extract from bam file at each iteration
-#' @param verbose logical flag whether to print verbose output
-#' @param mc.cores number of cores to parallelize
-#' @param ...  additional params to pass to varcount
-#' @return GRanges of maf annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
-#' @author Marcin Imielinski
-#' @export
-mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T, mc.cores = 1, ...)
-    {
-
-        if (is.character(tum.bam))
-            tum.bam = BamFile(tum.bam)
-        ## xtYao: fix here rather than `varcount`
-        bams = BamFileList(tum.bam)
-        
-        if (!is.null(norm.bam))
-            {
-                if (is.character(norm.bam))
-                    norm.bam = BamFile(norm.bam)
-
-                ## prevent incompatible BAM headers
-                if (identical(seqlengths(bams), seqlengths(norm.bam)))
-                    bams = c(bams, BamFileList(norm.bam))
-                else
-                    bams2 = BamFileList(norm.bam)
-            }
-    
-    chunks = chunk(1, length(maf), chunk.size)
-
-        
-        if (is.null(maf$Tumor_Seq_Allele1))
-            maf$Tumor_Seq_Allele1 = maf$alt
-        
-        if (is.null(maf$Tumor_Seq_Allele1))
-            maf$Tumor_Seq_Allele1 = maf$ALT
-
-        if (is.null(maf$Reference_Allele))
-            maf$Reference_Allele = maf$ref
-        
-        if (is.null(maf$Reference_Allele))
-            maf$Reference_Allele = maf$REF
-
-        if (!all(is.character(maf$Tumor_Seq_Allele1)))
-            maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
-        
-        if (!all(is.character(maf$Reference_Allele)))
-            maf$Reference_Allele = as.character(maf$Reference_Allele)
-            
-            
-        if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1))
-            stop("Can't find variant columns in input granges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele")
-            
-    maf$alt.count.t =  maf$ref.count.t = NA
-
-    if (!is.null(norm.bam))
-      maf$alt.count.n =  maf$ref.count.n = NA
-
-    if (verbose)
-      cat('Initialized\n')
-
-    if (is.data.frame(maf))
-      maf = seg2gr(maf)
-    tmp = do.call('rbind',
-      mclapply(1:nrow(chunks), function(i)
-            {
-                if (verbose)
-                    cat('Starting chunk ', chunks[i, 1], ' to ', chunks[i, 2], '\n')
-                
-                ix = chunks[i,1]:chunks[i,2]
-               if (verbose)
-                   now = Sys.time()
-               
-                vc = varcount(bams, maf[ix], ...)
-                if (exists("bams2")){
-                    vc2 = varcount(bams2, maf[ix], ...)
-                    ## vc$counts = abind(vc$count, vc2$count, along=3)
-                }
-               
-               if (verbose)
-                 print(Sys.time() - now)
-               
-                tum.count = vc$counts[, , 1]
-                if (exists("bams2")){
-                    norm.count = vc2$counts[,,1]
-                }
-
-               if (is.null(dim(tum.count)))
-                 tum.count = cbind(tum.count)
-        
-               out = cbind(
-                 tum.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(tum.count)), 1:length(ix))],
-                 tum.count[cbind(match(maf$Reference_Allele[ix], rownames(tum.count)), 1:length(ix))]
-                 )
-
-               if (verbose)
-                 cat('Num rows:', nrow(out), '\n')
-                     
-               if (!is.null(norm.bam))
-               {
-                   ## prevent incompatible BAM headers
-                   if (identical(seqlengths(bams), seqlengths(norm.bam)))
-                   {
-                       norm.count = vc$counts[, , 2]                      
-                   }
-                   else
-                   {
-                       norm.count = vc2$counts[, , 1]
-                   }
-                   if (is.null(dim(norm.count)))
-                       norm.count = cbind(norm.count)
-                   
-                   out = cbind(out, 
-                               norm.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(norm.count)), 1:length(ix))],
-                               norm.count[cbind(match(maf$Reference_Allele[ix], rownames(norm.count)), 1:length(ix))]
-                               )
-                 }
-               return(out)               
-            }, mc.cores = mc.cores))
-
-    maf$alt.count.t = tmp[,1]
-    maf$ref.count.t = tmp[,2]
-    maf$alt.frac.t = maf$alt.count.t / (maf$alt.count.t + maf$ref.count.t)
-    maf$ref.frac.t = 1 - maf$alt.frac.t
-
-    if (!is.null(norm.bam))
-      {
-        maf$alt.count.n = tmp[,3]
-        maf$ref.count.n = tmp[,4]
-        maf$alt.frac.n = maf$alt.count.n / (maf$alt.count.n + maf$ref.count.n)
-        maf$ref.frac.n = 1 - maf$alt.frac.n
-      }
-
-    return(maf)
-  }
-
-
-
-#' @name hets
-#' @title Simple het "caller" meant to be used at validated het SNP sites for tumor / normal pairs
-#' @description 
-#' hets dumps a tsv file of alt ($alt.count.t, $alt.count.n) and ref ($ref.count.t, $ref.count.n) read counts to out.file
-#' for a tumor / normal pair across a set of sites specified by an input VCF
-#'
-#' @author Marcin Imielinski
-#' @param tum.bam character scalar or BamFile of tumor bam
-#' @param norm.bam character scalar or BamFile of normal bam (optional)
-#' @param out.file path to TSV output file to be generated
-#' @param vcf.file VCF file of sites (eg hapmap or 1000G) at which to compute read counts
-#' @param chunk.size1 number of variants to process from VCF file at a time
-#' @param chunk.size2 number of variants to access from BAM file in a single iteration
-#' @param mc.cores how many cores to parallelize
-#' @param verbose verbose logical flag
-#' @param na.rm logical flag to remove rows with NA counts
-#' @param filt.norm logical flag remove any sites that have allele fraction of 0 or 1 or NA in MAF
-#' @return nil
-#' @export
-hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3, chunk.size2 = 1e2, mc.cores = 14, verbose = T, na.rm = TRUE, 
-  filt.norm = T ## if TRUE will remove any sites that have allele fraction 0 or 1 or NA in MAF 
-  )
-  {    
-      f = file(vcf.file, 'r')
-      if (grepl('VCF', readLines(f, 1)))
-          vcf = TRUE
-      else
-          vcf = FALSE
-
-      sl = hg_seqlengths()
-
-      if (verbose)
-          st = Sys.time()
-
-      nprocessed = 0
-      nhets = 0
-      first = T
-      ## get past headers
-      while (grepl('^#', last.line <<- readLines(f, n=1))){}
-
-      if (verbose)
-          cat('Opened vcf, writing hets to text file', out.file, '\n')
-
-      out.cols = c('seqnames', 'start', 'end', 'Tumor_Seq_Allele1', 'Reference_Allele', 'ref.count.t', 'alt.count.t', 'ref.count.n', 'alt.count.n', 'alt.frac.t', 'ref.frac.t', 'alt.frac.n', 'ref.frac.n')
-
-
-      if (vcf)
-          col.ix = 1:5
-      else
-          {
-              col.ix = match(c("Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"), strsplit(last.line, '\t')[[1]])
-              if (any(is.na(col.ix)))
-                  stop('Error processing variant file: must be valid VCF or MAF')
-          }
-      
-      while (!is.null(tmp <- tryCatch(read.delim(file = f, as.is = T, header = F, nrows = chunk.size1)[, col.ix], error = function(x) NULL)))
-          {
-              if (vcf)
-                  names(tmp) = c('chr', 'start', 'name', 'ref', 'alt')
-              else
-                  {
-                      names(tmp) = c('chr', 'start', 'name', 'ref', 'alt', 'alt2')
-                      ## just in case the first tumor seq allele is equal to reference .. which happens in mafs
-                      tmp$alt = ifelse(tmp$alt==tmp$ref, tmp$alt2, tmp$alt)
-                  }
-              
-              loc = seg2gr(tmp, seqlengths = sl)    
-              clock({loc.count = mafcount(tum.bam, norm.bam, loc, indel = T, chunk.size = chunk.size2, mc.cores = mc.cores)})
-              nprocessed = nprocessed + length(loc.count)
-              
-              if (filt.norm & !is.null(loc.count$alt.frac.n))
-                  loc.count = loc.count[which(loc.count$alt.frac.n != 1 & loc.count$alt.frac.n != 0)]
-              
-              nhets = nhets + length(loc.count)
-              if (length(loc.count)>0)
-                  {
-                      df = as.data.frame(loc.count)
-                      if (na.rm) ## remove any entries with 0 ref or alt reads in tumor or normal
-                          {
-                              if (!is.null(norm.bam)) 
-                                  naix = apply(df[, c('alt.count.t', 'ref.count.t', 'alt.count.n', 'ref.count.n')], 1, function(x) all(is.na(x)))
-                              else
-                                  naix = apply(df[, c('alt.count.t', 'ref.count.t')], 1, function(x) all(is.na(x)))
-                              df = df[which(!naix), ]
-                          }
-                      out.cols = intersect(out.cols, names(df))
-                      if (first)
-                          {
-
-                              write.tab(df[, out.cols], out.file, append = F, col.names = T)
-                              first = F
-                          }
-                      else                      
-                          write.tab(df[, out.cols], out.file, append = T, col.names = F)
-                  }
-              
-              if (verbose)
-                  cat(sprintf('Processed %s sites, wrote %s candidate hets\n', nprocessed, nhets))
-              
-              if (verbose)
-                  {
-                      cat('Time elapsed:\n')
-                      print(Sys.time() - st)
-                  }              
-          }
-      
-      close(f)
-     
-      if (verbose)
-          cat('Finished het processing wrote to file', out.file, '\n')
-  }
-
-
-
 #' @name read.bam
-#' @title Read BAM file into GRanges or data.table
+#' @title read.bam
 #' @description 
+#' 
+#' Read BAM file into GRanges or data.table
 #'
 #' Wrapper around Rsamtools bam scanning functions,
 #' by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
@@ -414,23 +28,23 @@ hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3,
 #' @param hasUnmappedMate See documentation for \code{scanBamFlag}. Default NA
 #' @param isNotPassingQualityControls See documentation for \code{scanBamFlag}. Default NA
 #' @param isDuplicate See documentation for \code{scanBamFlag}. Default FALSE
-#' @param isValidVendorRead See documentation for \code{scanBamFlag}. Default TRUE
-#' @param as.grl Return reads as GRangesList. Controls whether \code{get.pairs.grl} does split. Default TRUE
+#' @param isValidVendorRead See documentation for \code{scanBamFlag}. (default = TRUE)
+#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default = TRUE)
 #' @param as.data.table Return reads in the form of a data.table rather than GRanges/GRangesList
 #' @param ignore.indels messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
 #' @param ... passed to \code{scanBamFlag}
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
-read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
+read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
                     gr = intervals,
                     all = FALSE,
                     bai = NULL,
-                    pairs.grl = TRUE, # if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
-                                        #  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
-                                        #  gappedAlignment = T, # if false just read alignments using scanbam
+                    pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
+                                        ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
+                                        ##  gappedAlignment = T, # if false just read alignments using scanbam
                     stripstrand = TRUE,
                     what = scanBamWhat(),
-                    unpack.flag = FALSE, # will add features corresponding to read flags
+                    unpack.flag = FALSE,  ## will add features corresponding to read flags
                     verbose = FALSE,
                     tag = NULL,
                     isPaired = NA, ## if these features are NA, then reads satisfying both T and F will be returned
@@ -438,210 +52,176 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
                     isUnmappedQuery = NA,
                     hasUnmappedMate = NA,
                     isNotPassingQualityControls = NA,
-                    isDuplicate = F,
+                    isDuplicate = FALSE,
                     isValidVendorRead = TRUE,
-                    pairs.grl.split = TRUE, ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
+                    pairs.grl.split=TRUE,  ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
                     as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
                     ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-                    ... # passed to scanBamFlag (
+                    size.limit = 1e6,
+                    ... ## passed to scanBamFlag (
                     )
 {
-    if (!is(isPaired, 'logical')){ stop('Error: argument "isPaired" must be type "logical". Please see documentation for details.')}
-    if (!is(isProperPair, 'logical')){ stop('Error: argument "isProperPair" must be type "logical". Please see documentation for details.')}
-    if (!is(isUnmappedQuery, 'logical')){ stop('Error: argument "isUnmappedQuery" must be type "logical". Please see documentation for details.')}
-    if (!is(hasUnmappedMate, 'logical')){ stop('Error: argument "hasUnmappedMate" must be type "logical". Please see documentation for details.')}
-    if (!is(isNotPassingQualityControls, 'logical')){ stop('Error: argument "isNotPassingQualityControls" must be type "logical". Please see documentation for details.')}
-    if (!is(isDuplicate, 'logical')){ stop('Error: argument "isDuplicate" must be type "logical". Please see documentation for details.')}
-    
     if (!inherits(bam, 'BamFile'))
     {
-      if (is.null(bai))
-      {
-        if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
-          bam = BamFile(bam, bai)
-        }
-        else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
-          bam = BamFile(bam, bai)
+        if (is.null(bai))
+        {
+            if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
+                bam = BamFile(bam, bai)
+            }
+            else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
+                bam = BamFile(bam, bai)
+            }
+            else{
+                bam = BamFile(bam)
+            }
         }
         else{
-          bam = BamFile(bam)
+            bam = BamFile(bam, index = bai)
         }
-      }
-      else{
-        bam = BamFile(bam, index = bai)
-      }
     }
-    
+    ## if intervals unspecified will try to pull down entire bam file (CAREFUL)
     if (length(intervals)==0)
         intervals = NULL
-    
+
+    if (is.null(intervals))
+        intervals = gr
+
     if (is.null(intervals))
     {
-        if (all) {
+        if (all)
             intervals = si2gr(seqinfo(bam))
-            intervals = c(intervals, GRanges("All_Unmapped", IRanges(-1e6, 1e6)))
-        }
         else
-            stop('Error: Input "interval" is NULL with "all=FALSE". If "intervals" unspecified and "all=TRUE", "read.bam()" will load entire BAM. Otherwise, users must provide non-empty interval list. Please see documentation for details.')
+            stop('Must provide non empty interval list')
     }
 
-    if (class(intervals) == 'data.frame'){
+    if (class(intervals) == 'data.frame')
         intervals = seg2gr(intervals);
-    }
 
-    if (inherits(intervals, 'GRangesList')){
+    if (inherits(intervals, 'GRangesList'))
         intervals = unlist(intervals);
-    }
 
-    if (stripstrand){
+    if (stripstrand)
         strand(intervals) = '*'
-    }
 
     intervals = reduce(intervals);
 
-    
     now = Sys.time();
 
-    if (pairs.grl){
-        paired = FALSE
-    }
+    if (pairs.grl)
+        paired = F
 
     flag = scanBamFlag(isPaired = isPaired, isProperPair = isProperPair, isUnmappedQuery = isUnmappedQuery,
                        hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
-    intervals2 = gr.fix(intervals, bam, drop = T)
-
-    
-    if (length(intervals2)==0)
-        stop('Requested interval does not intersect the seqinfo of the BamFile')
-    if (all) {
-        param = ScanBamParam(what = what, flag = flag, tag = tag)
-    } else {
-        param = ScanBamParam(which = intervals2, 
-                             what = what, flag = flag, tag = tag)
-    }
-    
-
-    if (verbose){
-        message('Reading BAM file\n')
-    }
-
-    if (class(bam) == 'BamFile'){
-        out = scanBam(bam, param = param)
-    }
-    else{
-        out = scanBam(bam, index = bai, param = param)
-    }
-
-    if (verbose){
+    if (verbose)
+        cat('Reading bam file\n')
+    if (class(bam) == 'BamFile')
+        out <- scanBam(bam, param=param)
+    else
+        out <- scanBam(bam, index=bai, param=param)
+    if (verbose) {
         print(Sys.time() - now)
-        message('BAM now read. Converting into data.frame')
+        print('BAM read. Making into data.frame')
     }
 
-    out = out[sapply(out, function(x) length(x$qname) > 0)]
+    out <- out[sapply(out, function(x) length(x$qname)>0)]
 
-    if (length(out) > 0){
-        if (verbose){
+    if (length(out)>0)
+    {
+        if (verbose) {
             print(Sys.time() - now)
-            message('Combining lists')
+            print('combining lists')
         }
-        out = as.data.table(rbindlist(lapply(out, function(x)
+        out <- as.data.frame(rbindlist(lapply(out, function(x)
         {
-            x = c(x[-match('tag', names(x))], x$tag)
+            x <- c(x[-match('tag', names(x))], x$tag)
 
-            x = x[sapply(x, length)>0]
-            conv = which(!(sapply(x, class) %in% c('integer', 'numeric', 'character')))
-            x[conv] = lapply(x[conv], as.character)
+            x <- x[sapply(x, length)>0]
+            conv <- which(!(sapply(x, class) %in% c('integer', 'numeric', 'character')))
+            x[conv] <- lapply(x[conv], as.character)
 
-            for (t in tag){
-                if (!(t %in% names(x))){
+            for (t in tag)
+                if (!(t %in% names(x)))
                     x[[t]] = rep(NA, length(x$qname))
-                }
-            }
 
-            if (!('R2' %in% names(x)) && 'R2' %in% tag){
+            if (!('R2' %in% names(x)) && 'R2' %in% tag)
                 x$R2 <- rep(NA, length(x$qname))
-            }
-            if (!('Q2' %in% names(x)) && 'Q2' %in% tag){
+            if (!('Q2' %in% names(x)) && 'Q2' %in% tag)
                 x$Q2 <- rep(NA, length(x$qname))
-            }
-            return(x)
+            x
         })))
 
         ## faster CIGAR string parsing with vectorization and data tables
-        if (verbose){
+        if (verbose) {
             print(Sys.time() - now)
-            message('Filling pos2 from cigar')
+            print('filling pos2 from cigar')
         }
-        if (ignore.indels){
-            cigar = gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
-            cig =  explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
-            torun = sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
-            M = charToRaw('M')
-            new.cigar = sapply(cig[torun], function(y) {
-                lets = y[[1]][!duplicated(y[[1]])]
-                vals = y[[2]][!duplicated(y[[1]])]
-                vals[lets==M] = sum(y[[2]][y[[1]]==M])
-                lets = strsplit(rawToChar(lets), '')[[1]]
+        if (ignore.indels) {
+            cigar <- gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
+            cig <- explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
+            torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
+            M <- charToRaw('M')
+            new.cigar <- sapply(cig[torun], function(y) {
+                lets <- y[[1]][!duplicated(y[[1]])]
+                vals <- y[[2]][!duplicated(y[[1]])]
+                vals[lets==M] <- sum(y[[2]][y[[1]]==M])
+                lets <- strsplit(rawToChar(lets), '')[[1]]
                 paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
             })
-            out$cigar[torun] = new.cigar
+            out$cigar[torun] <- new.cigar
         }
-        cigs = countCigar(out$cigar)
-        ## out$pos2 <- out$pos + cigs[, "M"]
-        out$pos2 = out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
+        cigs <- countCigar(out$cigar)
+        # out$pos2 <- out$pos + cigs[, "M"]
+        out$pos2 <- out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
 
-        if (verbose){
+        if (verbose) {
             print(Sys.time() - now)
-            message('Fixing seqdata')
+            print('fixing seqdata')
         }
         out$qwidth = nchar(out$seq)
         unm = is.na(out$pos)
-        if (any(unm)){
+        if (any(unm))
+        {
             out$pos[unm] = 1
             out$pos2[unm] = 0
             out$strand[unm] = '*'
         }
         gr.fields = c('rname', 'strand', 'pos', 'pos2');
-        vals = out[, setdiff(names(out), gr.fields), with = FALSE]
-
-        if (all) {
-            out$rname = ifelse(is.na(out$rname), "All_Unmapped", out$rname)
-        }
+        out = as.data.table(out)
+        vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
         if (!as.data.table) {
-            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals2))
+            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
             values(out) <- vals;
         } else {
             out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
-    ## out$name = paste(out$qname, ifelse(bamflag(out$flag)[, 'isFirstMateRead'], '_r1', '_r2'), sep = '')
+                                        #out$uname = paste(out$qname, ifelse(bamflag(out$flag)[, 'isFirstMateRead'], '_r1', '_r2'), sep = '')
     }
     else {
-        if (!as.data.table){
-            return(GRanges(seqlengths = seqlengths(intervals2)))  ### should be empty
-        }
-        else{
-            return(data.table())  ## return empty data.table
-        }
+        if (!as.data.table)
+            return(GRanges(seqlengths = seqlengths(intervals)))
+        else
+            return(data.table())
     }
 
-    if (verbose){
-        if (as.data.table){
-          cat(sprintf('Extracted %s reads\n', nrow(out)))
-        }
-        else{
-          cat(sprintf('Extracted %s reads\n', length(out)))
-        }
-        print(paste0('Total time to complete: ', Sys.time() - now))
+    if (verbose)
+    {
+        if (as.data.table)
+            cat(sprintf('Extracted %s reads\n', nrow(out)))
+        else
+            cat(sprintf('Extracted %s reads\n', length(out)))
+        print(Sys.time() - now)
     }
 
     if (pairs.grl){
+
         if (verbose){
             cat('Pairing reads\n')
         }
@@ -684,8 +264,8 @@ read.bam = function(bam, intervals = NULL,## GRanges of intervals to retrieve
 #' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
 #' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
 #' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
-#' @param mc.cores integer Number of cores in \code{mclapply} call
-#' @param chunksize integer How many intervals to process per core (default == 10)
+#' @param mc.cores integer Number of cores in mclapply (default = 1)
+#' @param chunksize integer How many intervals to process per core (default =10)
 #' @param ... futher arguments passed into Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
@@ -891,6 +471,10 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
 
 
+#' @name bam.cov.tile
+#' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
+#' @description
+#'
 #' Calls samtools mpileup to dump tsv of "one off" variants / sites (i.e. that are present in exactly one read per site)
 #'
 #' @param out.file file to dump tsv to 
@@ -1067,7 +651,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
         m.val = values(m.gr)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
-        mcols(r.gr) = rrbind2(mcols(reads)[, setdiff(colnames(values(reads)), bad.col), drop = FALSE], m.val)
+        mcols(r.gr) = rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col), drop = FALSE], m.val)
     } 
     else if (isdt) {
         m.gr = m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with = FALSE]
@@ -1145,6 +729,18 @@ count.clips = function(reads)
 
     return(out)
 }
+
+
+
+## alpha() used in varbase
+alpha = function(col, alpha)
+{
+  col.rgb = col2rgb(col)
+  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
+  names(out) = names(col)
+  return(out)
+}
+
 
 
 
@@ -1912,44 +1508,453 @@ get.mate.gr = function(reads)
 
 
 
-alpha = function(col, alpha)
-{
-  col.rgb = col2rgb(col)
-  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
-  names(out) = names(col)
-  return(out)
-}
-
-
-
 #' @name chunk
 #' @title  chunk
-#'
 #' @description
+#'
 #' Internal function takes same input as seq (from, to, by, length.out) and outputs a 2 column matrix of indices
 #' corresponding to "chunks"
 #'
-#' @param from integer where to begin sequence
-#' @param to integer to end sequence
-#' @param by interval to space sequence
-#' @param length.out number of desired chunks, i.e. nrows of output matrix
-#' @return 2 column matrix of indices, each row representing chunk
+#' @param from integer Where to begin sequence
+#' @param to integer To end sequence (default = NULL)
+#' @param by integer Interval to space sequence (default = 1)
+#' @param length.out integer Number of desired chunks, i.e. nrows of output matrix (default = NULL)
+#' @return 2-column matrix of indices, each row representing a chunk
 #' @author Marcin Imielinski
 chunk = function(from, to = NULL, by = 1, length.out = NULL)
-  {
-    if (is.null(to))
-      {
+{
+    if (is.null(to)){
         to = from;
         from = 1;
-      }
+    }
 
-    if (is.null(length.out))
-      tmp = c(seq(from = from, to = to, by = by), to + 1)
-    else
-      tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
+    if (is.null(length.out)){
+        tmp = c(seq(from = from, to = to, by = by), to + 1)
+    }
+    else{
+        tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
+    }
 
     out = floor(cbind(tmp[-length(tmp)], tmp[-1]-1))
 
     return(out)
-  }
+}
+
+
+
+#' @name varcount
+#' @title Wrapper around applyPileups
+#' @description 
+#'
+#' Takes in vector of bam paths or GRanges corresponding to sites / territories to query,
+#' and outputs a list with fields:
+#'
+#' $counts = 3D matrix of base counts
+#' (A, C, G, T, N) x sites x bams subject to mapq and baseq thresholds
+#'
+#  $gr = output ranges corresponding to "sites" columns of output
+#'
+#'
+#' varcount() relies upon varbase() 
+#'
+#' @param bams character vector of paths to bam files
+#' @param gr GRanges of (width=1) sites i.e. intervals at which to compute base coujnts
+#' @param min.mapq integer Minimal mapping quality at which to compute bases
+#' @param max.baseq integer Minimal base qualitya t which to compute bases
+#' @param max.depth integer Maximum read depth to consider
+#' @param indel boolean Flag whether to consider indels (default FALSE)
+#' @param ... other args be passed to read.bam()
+#' @return GRanges annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
+#' @author Marcin Imielinski
+#' @export
+varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, indel = FALSE, ...)
+{
+    require(abind)
+    require(Rsamtools)
+
+    out = list()
+
+    if (any(width(gr)!=1)){
+        gr = gr.start(gr)
+    }
+
+    
+    if (is.character(bams)){    
+
+        bami = gsub('\\.bam$', '.bai', bams)
+        ix = file.exists(bami)
+        if (any(!ix)){
+            bami[!ix] = paste(bams[!ix], 'bai', sep = '.')
+        }
+        if (any(!file.exists(bami))){
+            stop('Error: one or more BAM file indices missing')
+        }
+        bams = BamFileList(mapply(function(bam, bai) BamFile(bam, index = bai), bams, bami, SIMPLIFY = FALSE))
+    }
+    else if (is(bams, 'BamFile')){
+        bams = BamFileList(bams)
+    }
+
+    ix = as.logical(as.character(seqnames(gr)) %in% seqlevels(bams))
+
+    if (any(ix)){
+
+        pp = ApplyPileupsParam(which = gr[ix], what = c("seq"), minBaseQuality = min.baseq, minMapQuality = min.mapq, maxDepth = max.depth)
+        ## ## xtYao fix: function applyPileups fail at heterogeneous BAM seqlevels
+        ## ## do them separately and put back
+        ## if (length(bams)==2){
+        ##     if (identical(seqlengths(bams[1]), seqlengths(bams[2]))){
+        ##         pu = applyPileups(PileupFiles(bams), function(x) x, param = pp)
+        ##     } else {
+        ##         pu1 = applyPileups(PileupFiles(bams[1]), function(x) x, param = pp)
+        ##         pu2 = applyPileups(PileupFiles(bams[2]), function(x) x, param = pp)
+        ##         pu = lapply(which(ix),
+        ##                     function(ii){
+        ##                         out = list()
+        ##                         out$seqnames = pu1[[ii]]$seqnames
+        ##                         out$pos = pu1[[ii]]$pos
+        ##                         if (all(dim(pu1[[ii]]$seq)==dim(pu2[[ii]]$seq))){
+        ##                             out$seq = abind(pu1[[ii]]$seq, pu2[[ii]]$seq, along=2)
+        ##                             return(out)
+        ##                         } else {
+        ##                             return(NULL)
+        ##                         }
+        ##                     })
+        ##     }
+        ## } else {
+        pu = applyPileups(PileupFiles(bams), function(x) x, param = pp)
+        ## }
+    }
+
+    if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
+        bam.paths = Rsamtools::path(bams)
+    }
+    else if (is(bams, 'BamFileList')){
+        bam.paths = sapply(bams, path)
+    }
+    else if (is(bams, 'list')){
+        bam.paths = sapply(bams, path)
+    }
+    else if (is(bams, 'character')){
+        bam.paths = bams
+    }
+
+
+    if (!indel){
+        cnames = c('A', 'C', 'G', 'T', 'N')
+        out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
+        if (any(ix)){
+            nna = sapply(pu, function(x) length(x$seq)>0)
+            out$counts[,which(ix)[nna],] = aperm(do.call('abind', lapply(pu, function(x){
+                x$seq[cnames,,, drop = F]
+            })), c(1,3,2))
+        }
+    }
+    else{
+        cnames = unique(unlist(lapply(pu, function(x) rownames(x$seq))))
+        cnames = cnames[order(nchar(cnames), cnames)]
+        out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
+        if (any(ix)){
+            nna = sapply(pu, function(x) length(x$seq)>0)
+            out$counts[,which(ix)[nna],] = aperm(do.call('abind', lapply(pu, function(x){
+                out = array(NA, dim = c(length(cnames), dim(x$seq)[2:3]), dimnames = list(cnames));
+                out[rownames(x$seq),, ] = x$seq
+                })), c(1,3,2))
+            return(out)
+            }
+    }    
+
+    out$gr = gr
+
+    return(out)    
+}
+
+
+#' @name mafcount
+#' @title Wrapper around varcount adapted to tumor and normal "paired" bams
+#' @description 
+#'
+#' Returns base counts for reference and alternative allele for an input tum and norm bam and maf data frame or GRAnges specifying substitutions
+#'
+#' maf is a single width GRanges describing variants and field 'ref' (or 'Reference_Allele'), 'alt' (or 'Tum_Seq_Allele1') specifying reference and alt allele.
+#' maf is assumed to have width 1 and strand is ignored.  
+#'
+#' @param tum.bam string path to tumor sample, input to Bamfile()
+#' @param norm.bam optional string path to normal sample, input to Bamfile() (optional) (default = NULL)
+#' @param maf GRanges or data.frame or data.table of imported MAF (e.g. output of read.delim or fread)
+#' @param chunk.size integer Number of variants to extract from bam file at each iteration (default = 100)
+#' @param verbose logical Flag whether to print verbose output (default = TRUE)
+#' @param mc.cores integer Number of cores in mclapply (default = 1)
+#' @param ...  additional pparams to pass to varcount
+#' @return GRanges of MAF annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
+#' @author Marcin Imielinski
+#' @export
+mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, ...)
+{
+
+    if (is.character(tum.bam)){
+        tum.bam = BamFile(tum.bam)
+    }
+
+    ## xtYao: fix here rather than `varcount`
+    bams = BamFileList(tum.bam)
+        
+    if (!is.null(norm.bam)){
+            
+        if (is.character(norm.bam)){
+            norm.bam = BamFile(norm.bam)
+        }
+
+        ## prevent incompatible BAM headers
+        if (identical(seqlengths(bams), seqlengths(norm.bam))){
+            bams = c(bams, BamFileList(norm.bam))
+        }
+        else{
+            bams2 = BamFileList(norm.bam)
+        }
+    }
+    
+    chunks = chunk(1, length(maf), chunk.size)
+
+        
+        if (is.null(maf$Tumor_Seq_Allele1))
+            maf$Tumor_Seq_Allele1 = maf$alt
+   
+        if (is.null(maf$Tumor_Seq_Allele1))
+            maf$Tumor_Seq_Allele1 = maf$ALT
+
+        if (is.null(maf$Reference_Allele))
+            maf$Reference_Allele = maf$ref
+        
+        if (is.null(maf$Reference_Allele))
+            maf$Reference_Allele = maf$REF
+
+        if (!all(is.character(maf$Tumor_Seq_Allele1)))
+            maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
+        
+        if (!all(is.character(maf$Reference_Allele)))
+            maf$Reference_Allele = as.character(maf$Reference_Allele)
+            
+            
+        if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1))
+            stop("Error: Can't locate variant columns in input granges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele")
+            
+    maf$alt.count.t = maf$ref.count.t = NA
+
+    if (!is.null(norm.bam)){
+        maf$alt.count.n =  maf$ref.count.n = NA
+    }
+
+    if (verbose){
+        cat('Initialized\n')
+    }
+
+    if (is.data.frame(maf)){
+        maf = seg2gr(maf)
+    }
+
+    tmp = do.call('rbind', mclapply(1:nrow(chunks), function(i){
+
+        if (verbose){
+            cat('Starting chunk ', chunks[i, 1], ' to ', chunks[i, 2], '\n')
+        }
+                
+        ix = chunks[i,1]:chunks[i,2]
+
+        if (verbose){
+            now = Sys.time()
+        }
+               
+        vc = varcount(bams, maf[ix], ...)
+
+        if (exists("bams2")){
+            vc2 = varcount(bams2, maf[ix], ...)
+            ## vc$counts = abind(vc$count, vc2$count, along=3)
+        }
+               
+        if (verbose){
+            print(Sys.time() - now)
+        }
+               
+        tum.count = vc$counts[, , 1]
+
+        if (exists("bams2")){
+            norm.count = vc2$counts[,,1]
+        }
+
+        if (is.null(dim(tum.count))){
+            tum.count = cbind(tum.count)
+        }
+        
+        out = cbind(
+            tum.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(tum.count)), 1:length(ix))],
+            tum.count[cbind(match(maf$Reference_Allele[ix], rownames(tum.count)), 1:length(ix))]
+        )
+
+        if (verbose){
+            cat('Num rows:', nrow(out), '\n')
+        }
+                     
+        if (!is.null(norm.bam)){
+
+            ## prevent incompatible BAM headers
+            if (identical(seqlengths(bams), seqlengths(norm.bam))){
+                norm.count = vc$counts[, , 2]                      
+            }
+            else{
+                        norm.count = vc2$counts[, , 1]
+            }
+            if (is.null(dim(norm.count))){
+                        norm.count = cbind(norm.count)
+            }
+
+            out = cbind(out, 
+                norm.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(norm.count)), 1:length(ix))],
+                norm.count[cbind(match(maf$Reference_Allele[ix], rownames(norm.count)), 1:length(ix))]
+            )
+        }
+               
+    return(out)               
+    }, mc.cores = mc.cores))
+
+    maf$alt.count.t = tmp[,1]
+    maf$ref.count.t = tmp[,2]
+    maf$alt.frac.t = maf$alt.count.t / (maf$alt.count.t + maf$ref.count.t)
+    maf$ref.frac.t = 1 - maf$alt.frac.t
+
+    if (!is.null(norm.bam)){
+        maf$alt.count.n = tmp[,3]
+        maf$ref.count.n = tmp[,4]
+        maf$alt.frac.n = maf$alt.count.n / (maf$alt.count.n + maf$ref.count.n)
+        maf$ref.frac.n = 1 - maf$alt.frac.n
+    }
+
+    return(maf)
+}
+
+
+
+#' @name hets
+#' @title Simple het "caller" meant to be used at validated het SNP sites for tumor / normal pairs
+#' @description 
+#'
+#' hets() outputs a tsv file of ALT ($alt.count.t, $alt.count.n) and REF ($ref.count.t, $ref.count.n) read counts to out.file
+#' for a tumor / normal pair across a set of sites specified by an input VCF
+#'
+#' @param tum.bam string path to tumor sample, input to Bamfile()
+#' @param norm.bam string path to normal sample, input to Bamfile()(optional) (default = NULL)
+#' @param out.file string path to TSV output file to be generated 
+#' @param vcf.file string path to VCF file of sites (eg hapmap or 1000G) at which to compute read counts
+#' @param chunk.size1 integer Number of variants to process from VCF file at a time (default = 1e3)
+#' @param chunk.size2 integer Number of variants to access from BAM file in a single iteration (default = 1e2)
+#' @param mc.cores integer Number of cores in mclapply (default = 1)
+#' @param verbose boolean Flag to increase verbosity (default = TRUE)
+#' @param na.rm logical Flag to remove rows with NA counts (default = TRUE)
+#' @param filt.norm logical Flag to remove any sites that have allele fraction of 0 or 1 or NA in MAF; if TRUE will remove any sites that have allele fraction 0 or 1 or NA in MAF 
+#' @return nil
+#' @author Marcin Imielinski
+#' @export
+hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3, chunk.size2 = 1e2, mc.cores = 1, verbose = TRUE, na.rm = TRUE, filt.norm = T)
+{    
+    f = file(vcf.file, 'r')
+      
+    if (grepl('VCF', readLines(f, 1))){
+        vcf = TRUE
+    }
+    else{
+        vcf = FALSE
+    }
+
+    sl = hg_seqlengths()
+
+    if (verbose){
+        st = Sys.time()
+    }
+
+    nprocessed = 0
+    nhets = 0
+    first = T
+    ## get past headers
+
+    ## while (grepl('^#', last.line <<- readLines(f, n=1))){}
+
+    if (verbose){
+        cat('Opened vcf, writing hets to text file', out.file, '\n')
+    }
+
+    out.cols = c('seqnames', 'start', 'end', 'Tumor_Seq_Allele1', 'Reference_Allele', 'ref.count.t', 'alt.count.t', 'ref.count.n', 'alt.count.n', 'alt.frac.t', 'ref.frac.t', 'alt.frac.n', 'ref.frac.n')
+
+    if (vcf){
+        col.ix = 1:5
+    }
+    else{
+        col.ix = match(c("Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"), strsplit(last.line, '\t')[[1]])
+        if (any(is.na(col.ix))){
+            stop('Error: failure processing variant file: must be valid VCF or MAF')
+        }
+    }
+      
+    while (!is.null(tmp <- tryCatch(read.delim(file = f, as.is = T, header = F, nrows = chunk.size1)[, col.ix], error = function(x) NULL))){
+        
+        if (vcf){
+            names(tmp) = c('chr', 'start', 'name', 'ref', 'alt')
+        }
+        else{
+            names(tmp) = c('chr', 'start', 'name', 'ref', 'alt', 'alt2')
+            ## just in case the first tumor seq allele is equal to reference .. which happens in mafs
+            tmp$alt = ifelse(tmp$alt==tmp$ref, tmp$alt2, tmp$alt)
+        }
+              
+        loc = seg2gr(tmp, seqlengths = sl)    
+        clock({loc.count = mafcount(tum.bam, norm.bam, loc, indel = T, chunk.size = chunk.size2, mc.cores = mc.cores)})
+        nprocessed = nprocessed + length(loc.count)
+              
+        if (filt.norm & !is.null(loc.count$alt.frac.n)){
+            loc.count = loc.count[which(loc.count$alt.frac.n != 1 & loc.count$alt.frac.n != 0)]
+        }
+              
+        nhets = nhets + length(loc.count)
+        if (length(loc.count)>0){
+
+            df = as.data.frame(loc.count)
+            ## remove any entries with 0 ref or alt reads in tumor or normal
+            if (na.rm){
+                if (!is.null(norm.bam)){
+                    naix = apply(df[, c('alt.count.t', 'ref.count.t', 'alt.count.n', 'ref.count.n')], 1, function(x) all(is.na(x)))
+                }
+                else{
+                    naix = apply(df[, c('alt.count.t', 'ref.count.t')], 1, function(x) all(is.na(x)))
+                }
+                df = df[which(!naix), ]
+            }
+
+            out.cols = intersect(out.cols, names(df))
+
+            if (first){
+                write.tab(df[, out.cols], out.file, append = F, col.names = T)
+                first = F
+            }
+            else{
+                write.tab(df[, out.cols], out.file, append = T, col.names = F)
+            }                     
+              
+            if (verbose){
+                cat(sprintf('Processed %s sites, wrote %s candidate hets\n', nprocessed, nhets))
+            }
+
+            if (verbose){
+                cat('Time elapsed:\n')
+                print(Sys.time() - st)
+            }              
+        }
+    }
+      
+    close(f)
+     
+    if (verbose){
+        cat('Finished het processing wrote to file', out.file, '\n')
+    }
+}
+
+
 

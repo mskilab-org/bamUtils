@@ -2,15 +2,15 @@
 % Please edit documentation in R/bamUtils.R
 \name{read.bam}
 \alias{read.bam}
-\title{Read BAM file into GRanges or data.table}
+\title{read.bam}
 \usage{
 read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
   pairs.grl = TRUE, stripstrand = TRUE, what = scanBamWhat(),
   unpack.flag = FALSE, verbose = FALSE, tag = NULL, isPaired = NA,
   isProperPair = NA, isUnmappedQuery = NA, hasUnmappedMate = NA,
-  isNotPassingQualityControls = NA, isDuplicate = F,
+  isNotPassingQualityControls = NA, isDuplicate = FALSE,
   isValidVendorRead = TRUE, pairs.grl.split = TRUE, as.data.table = FALSE,
-  ignore.indels = FALSE, ...)
+  ignore.indels = FALSE, size.limit = 1e+06, ...)
 }
 \arguments{
 \item{bam}{Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}
@@ -41,7 +41,9 @@ read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
 
 \item{isDuplicate}{See documentation for \code{scanBamFlag}. Default FALSE}
 
-\item{isValidVendorRead}{See documentation for \code{scanBamFlag}. Default TRUE}
+\item{isValidVendorRead}{See documentation for \code{scanBamFlag}. (default = TRUE)}
+
+\item{pairs.grl.split}{boolean returns as GRangesList if TRUE (default = TRUE)}
 
 \item{as.data.table}{Return reads in the form of a data.table rather than GRanges/GRangesList}
 
@@ -50,13 +52,13 @@ read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
 \item{...}{passed to \code{scanBamFlag}}
 
 \item{bami}{Input bam index file.}
-
-\item{as.grl}{Return reads as GRangesList. Controls whether \code{get.pairs.grl} does split. Default TRUE}
 }
 \value{
 Reads in one of GRanges, GRangesList or data.table
 }
 \description{
+Read BAM file into GRanges or data.table
+
 Wrapper around Rsamtools bam scanning functions,
 by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
 }

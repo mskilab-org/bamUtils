@@ -31,9 +31,9 @@ bam.cov.gr(bam, bai = NULL, intervals = NULL, all = FALSE,
 
 \item{isDuplicate}{boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)}
 
-\item{mc.cores}{integer Number of cores in \code{mclapply} call}
+\item{mc.cores}{integer Number of cores in mclapply (default = 1)}
 
-\item{chunksize}{integer How many intervals to process per core (default == 10)}
+\item{chunksize}{integer How many intervals to process per core (default =10)}
 
 \item{verbose}{boolean "verbose" flag (default == FALSE)}
 
