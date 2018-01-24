@@ -300,16 +300,20 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
     }
 
     if (is.character(bam))
-        if (!is.null(bai))
+        if (!is.null(bai)){
             bam = BamFile(bam, bai)
+        }
         else
         {
-            if (file.exists(paste(bam, 'bai', sep = '.')))
+            if (file.exists(paste(bam, 'bai', sep = '.'))){
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            else if (file.exists(gsub('.bam$', '.bai', bam)))
+            }
+            else if (file.exists(gsub('.bam$', '.bai', bam))){
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            else
+            }
+            else{
                 stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
+            }
         }
 
 
@@ -329,12 +333,13 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
                                hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
                                isDuplicate = isDuplicate, ...)
         }
-        out = rbindlist(mclapply(1:length(gr.chunk),
-                                 function(x) {
-                                     if (verbose)
-                                         cat(sprintf('Processing ranges %s to %s of %s, extracting %s bases\n', ix[x], ix[x+1]-1, length(keep), sum(width(gr.chunk[[x]]))))
-                                     as.data.table(countBam(bam, param = ScanBamParam(which = dt2gr(gr2dt(gr.chunk[[x]]), seqlengths = seqlengths(bam)), flag = flag)))
-                                 }, mc.cores = mc.cores));
+
+        out = rbindlist(mclapply(1:length(gr.chunk), function(x) {
+            if (verbose){
+                cat(sprintf('Processing ranges %s to %s of %s, extracting %s bases\n', ix[x], ix[x+1]-1, length(keep), sum(width(gr.chunk[[x]]))))
+            }
+            as.data.table(countBam(bam, param = ScanBamParam(which = dt2gr(gr2dt(gr.chunk[[x]]), seqlengths = seqlengths(bam)), flag = flag)))
+        }, mc.cores = mc.cores));
 
 
       gr.tag = paste(as.character(seqnames(intervals)), start(intervals), end(intervals));
@@ -431,16 +436,16 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     {
         i = i+1
 
-        if (fragments)
-        {
+        if (fragments){
+
             chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]  ## only take midpoints
+
             if (midpoint){
                 ## only take midpoints
                 chunk[, bin := 1 + floor((V2 + V3/2)/window)] ## use midpoint of template to index the correct bin
 
-            }
-            else ## enumerate all bins containing fragment i.e. where fragments overlap multiple bins  (slightly slower)
-            {
+            }## enumerate all bins containing fragment i.e. where fragments overlap multiple bins  (slightly slower)
+            else {
                 if (verbose){
                     cat('Counting all overlapping bins!\n')
                 }
@@ -459,15 +464,14 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
         counts[tabs, count := count + newcount] ## populate latest bins in master data.table
 
         ## should be no memory issues here since we preallocate the data table .. but they still appear
-        if (do.gc)
-        {
+        if (do.gc){
             print('GC!!')
             print(gc())
         }
 
         ## report timing
-        if (verbose)
-        {
+        if (verbose){
+
             cat('bam.cov.tile.st ', bam.file, 'chunk', i, 'num fragments processed', i*chunksize, '\n')
             timeelapsed = as.numeric(difftime(Sys.time(), st, units = 'hours'))
             meancov = i * chunksize / counts[tabs[nrow(tabs),], ]$rowid  ## estimate comes from total reads and "latest" bin filled
@@ -480,12 +484,14 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     }
 
     gr = GRanges(counts$chr, IRanges(counts$start, counts$end), count = counts$count, seqinfo = Seqinfo(names(sl), sl))
-    if (verbose)
+    if (verbose){
         cat("Finished computing coverage, and making GRanges\n")
+    }
     close(p)
 
-    if (!is.null(region))
+    if (!is.null(region)){
         system(sprintf('rm %s.bam %s.bam.bai', tmp.fn, tmp.fn))
+    }
 
     return(gr)
 }
@@ -531,8 +537,8 @@ oneoffs = function(out.file, bam, ref, min.bq = 30, min.mq = 60, indel = FALSE, 
         setnames(tab, fields)
         tab[ ,varnum := 1:.N]
 
-        if (indel)
-        {
+        if (indel){
+
             tab[, left.pad := nchar(gsub("[\\+\\-].*", '', alt))]
             tab[, wid := as.numeric(gsub('.*([\\+\\-]\\d+).*', '\\1', alt))]
             tab[, var := mapply(function(x,i) substr(x, 1, i),
@@ -554,8 +560,7 @@ oneoffs = function(out.file, bam, ref, min.bq = 30, min.mq = 60, indel = FALSE, 
         nv = nv + nrow(varb)
         nl = nl + length(chunk)
         i = i+1
-        if (verbose)
-        {
+        if (verbose){
             message('Wrote total of ',
                 nl, ' variants to ", out.file, ". Now at coordinate ',
                 varb[nrow(varb), sprintf("chr%s %s", chr, prettyNum(pos, ','))])
@@ -565,7 +570,7 @@ oneoffs = function(out.file, bam, ref, min.bq = 30, min.mq = 60, indel = FALSE, 
   
     close(p)
     if (verbose){
-    message('Done writing ', out.file)
+        message('Done writing ', out.file)
     }
 }
 
@@ -813,20 +818,17 @@ alpha = function(col, alpha)
 varbase = function(reads, soft = TRUE, verbose = TRUE)
 {
     nreads = length(reads)
-    if (inherits(reads, 'GRangesList'))
-    {
+    if (inherits(reads, 'GRangesList')){
         was.grl = TRUE
         r.id = grl.unlist(reads)$grl.ix
         reads = unlist(reads)
     }
-    else if (inherits(reads, 'data.frame'))
-    {
+    else if (inherits(reads, 'data.frame')){
         r.id = 1:nrow(reads)
         nreads = nrow(reads)
         was.grl = FALSE
     }
-    else
-    {
+    else{
         r.id = 1:length(reads)
         was.grl = FALSE
     }
@@ -835,8 +837,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         stop('Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.')
     }
 
-    if (is.data.frame(reads))
-    {
+    if (is.data.frame(reads)){
+
         sl = NULL
         sn =  reads$seqnames
         cigar = as.character(reads$cigar)
@@ -850,8 +852,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
             md = rep(NA, length(cigar))
         }
     }
-    else
-    {
+    else{
+
         sl = seqlengths(reads)
         sn =  seqnames(reads)
         cigar = as.character(values(reads)$cigar)
@@ -881,21 +883,18 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     md = md[ix]
     str = str[ix]
 
-    if (is.data.frame(reads))
-    {
+    if (is.data.frame(reads)){
         r.start = reads$start[ix]
         r.end = reads$end[ix]
     }
-    else
-    {
+    else{
         r.start = start(reads)[ix]
         r.end = end(reads)[ix];
     }
 
     flip = str == '-'
 
-    if (!is.null(seq))
-    {
+    if (!is.null(seq)){
         nix = sapply(seq, function(x) all(is.na(x)))
         if (any(nix)){
             seq[nix] = ''
@@ -1058,6 +1057,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     if (length(cigar.vals)>0){
         
         var.seq = lapply(1:length(cigar.vals), function(i){                                 
+            
             if (ends.seq[i]<starts.seq[i]){
                 return('') # deletion
             }
