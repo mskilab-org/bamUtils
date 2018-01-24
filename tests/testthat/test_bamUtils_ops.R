@@ -386,6 +386,35 @@ test_that('chunk', {
 
 
 ### varcount
+## min.mapq integer Minimal mapping quality at which to compute bases
+## max.baseq integer Minimal base qualitya t which to compute bases
+## max.depth integer Maximum read depth to consider
+## indel boolean Flag whether to consider indels (default FALSE)
+test_that('varcount', {
+
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$counts[1], 17)
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$counts[2], 0)
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$counts[3], 0)
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$counts[4], 0)
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$counts[5], 0)
+    expect_equal(width(varcount(small_MD_bam, gr= GRanges('1:10075-10100'))$gr), 1)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'))$counts[1], 511)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'))$counts[2], 6)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'))$counts[3], 4)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'))$counts[4], 0)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'))$counts[5], 0)
+    ## min.mapq
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'), min.mapq = 45)$counts[1], 8)
+    ## min.baseq
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), min.baseq = 1)$counts[1], 529)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), min.baseq = 1)$counts[2], 12)
+    ## max.depth 
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), max.depth = 1)$counts[1], 75)
+    expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), max.depth = 100)$counts[1], 160)
+    ## indel
+    expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'), indel=TRUE)$gr, NULL)
+
+})
 
 
 

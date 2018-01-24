@@ -17,7 +17,7 @@
 #' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file  
 #' @param gr Granges (default = intervals)
 #' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
-#' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval (default == FALSE)
+#' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs in which at least one read falls in the supplied interval (default ==FALSE)
 #' @param stripstrand boolean Flag to ignore strand information on the query intervals (default == TRUE)
 #' @param what vector What fields to pull down from BAM. (default == \code{scanBamWhat()})
 #' @param verbose boolean verbose flag (default == FALSE)
@@ -34,9 +34,7 @@
 #' @param ... futher arguments passed to Rsamtools::scanBamFlag()
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
-read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
-                    gr = intervals,
-                    all = FALSE,
+read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     bai = NULL,
                     pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
                                         ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
@@ -1546,7 +1544,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 #' @param max.baseq integer Minimal base qualitya t which to compute bases
 #' @param max.depth integer Maximum read depth to consider
 #' @param indel boolean Flag whether to consider indels (default FALSE)
-#' @param ... other args be passed to read.bam()
+#' @param ... other args be passed to read.bam(). Please see documentation for read.bam()
 #' @return GRanges annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
 #' @author Marcin Imielinski
 #' @export
@@ -1853,7 +1851,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 #' @return nil
 #' @author Marcin Imielinski
 #' @export
-hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3, chunk.size2 = 1e2, mc.cores = 1, verbose = TRUE, na.rm = TRUE, filt.norm = T)
+hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3, chunk.size2 = 1e2, mc.cores = 1, verbose = TRUE, na.rm = TRUE, filt.norm = TRUE)
 {    
     f = file(vcf.file, 'r')
       
@@ -1872,7 +1870,7 @@ hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3,
 
     nprocessed = 0
     nhets = 0
-    first = T
+    first = TRUE
     ## get past headers
 
     ## while (grepl('^#', last.line <<- readLines(f, n=1))){}
