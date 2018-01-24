@@ -16,11 +16,11 @@ context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 ##example_bam = 'small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ##example_bai = 'small.bam.bai' 
 
-example_bam = '/Users/ebiederstedt/bamUtils/tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-example_bai = '/Users/ebiederstedt/bamUtils/tests/testthat/smallHCC1143BL.bam.bai' 
+example_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+example_bai = 'smallHCC1143BL.bam.bai' 
 
-small_MD_bam = '/Users/ebiederstedt/bamUtils/tests/testthat/smallHCC1143BL.filtered.MD.bam'
-small_MD_bai = '/Users/ebiederstedt/bamUtils/tests/testthat/smallHCC1143BL.filtered.MD.bam.bai'
+small_MD_bam = 'smallHCC1143BL.filtered.MD.bam'
+small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 
 ## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
