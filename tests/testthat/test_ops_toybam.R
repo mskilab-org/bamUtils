@@ -1,8 +1,6 @@
-## tests on mskilab/bamUtils/tests/testthat/toy.bam and index
 
 library(bamUtils)
-library(gUtils)  ## remove
-##library(testthat)  ## remove
+
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 
@@ -24,12 +22,6 @@ small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 
 ## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
-
-### MUST CHECK 'pairs.grl' issue with 'get.mate.gr()'
-### MUST CHECK stripstrand
-### if (stripstrand){
-###    strand(intervals) = '*'
-### }
 
 
 
@@ -106,20 +98,72 @@ test_that('read.bam', {
     ## length(read.bam(example_bam, all = TRUE,  ignore.indels = TRUE))  ### Error in .Call2("explode_cigar_ops", cigar, ops, PACKAGE = "GenomicAlignments") :  'cigar[1]' is NA
     ## Error in duplicated((y[[1]][y[[1]] == M])) : object 'M' not found
     ## > length(read.bam(small_MD_bam , all = TRUE,  ignore.indels = TRUE))
-     ## Error in duplicated((y[[1]][y[[1]] == M])) : object 'M' not found
+    ## Error in duplicated((y[[1]][y[[1]] == M])) : object 'M' not found
 
 })
 
 
 ### bam.cov.gr
+test_that('bam.cov.gr', {
+
+    expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
+    
+
+})
 
 
-### bam.cov.tile
+
+test_that('bam.cov.tile', {
+
+    expect_equal(length(bam.cov.tile(example_bam)), 31018086)
+    ## window
+    expect_equal(length(bam.cov.tile(example_bam, window=1e7)), 382)
+    ## chunksize
+    expect_equal(length(bam.cov.tile(example_bam, chunksize=5e4, window=1e6)), 3173)
+    ## min.map
+    expect_equal(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, min.map=60)[1]$count, 14)
+    expect_equal(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, min.map=15)[1]$count, 932)
+    ## verbose
+    expect_equal(length(bam.cov.tile(example_bam, window=1e7, verbose=FALSE)), 382)
+    ## max.tlen
+    expect_equal( max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e7)$count), 129)
+    expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 100)$count), 0)
+    ## st.flag
+    expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6)$count), 129)
+    expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '')$count), 359)
+    ## fragments
+    expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', fragments=FALSE)$count), 360)
+    ## regions
+    ## do.gc
+    expect_equal( max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', do.gc=TRUE)$count), 359)
+    ## midpoint
+
+})
 
 
-### get.pairs.grl --- currently non-exported
-##  missing code, get.mate.gr() in get.pairs.grl
-## Needed for read.bam() as well
+## get.mate.gr()
+test_that('get.mate.gr', {
+
+    expect_equal(width(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]), 101)
+    expect_equal(width(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]), 101)   
+    expect_match(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]$qname, 'C1Y1JACXX130321:7:1101:13020:82300')
+    expect_equal(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]$mapq, 6)
+    expect_match(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]$qname, 'C1Y1JACXX130321:7:1101:13020:82300')
+    expect_equal(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]$mapq, 29)
+    
+})
+
+
+## get.pairs.grl
+test_that('get.pairs.grl', {
+
+    expect_error(get.pairs.grl(read.bam(example_bam, all=TRUE))) ## Error in (function (classes, fdef, mtable)  :  unable to find an inherited method for function ‘granges’ for signature ‘"GRangesList"’
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'), TRUE)
+    ## pairs.grl.split
+    ## verbose 
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE, verbose=TRUE)[[1]]), 'GRangesList'))
+
+})
 
 
 
