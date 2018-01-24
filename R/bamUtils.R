@@ -279,18 +279,23 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
         stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
     }
 
-    if (is.character(bam))
-        if (!is.null(bai))
+    if (is.character(bam)) {
+        if (!is.null(bai)) {
             bam = BamFile(bam, bai)
+        }
         else
         {
-            if (file.exists(paste(bam, 'bai', sep = '.')))
+            if (file.exists(paste(bam, 'bai', sep = '.'))) {
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            else if (file.exists(gsub('.bam$', '.bai', bam)))
+            }
+            else if (file.exists(gsub('.bam$', '.bai', bam))) {
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            else
+            }
+            else {
                 stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
+            }
         }
+    }
 
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
