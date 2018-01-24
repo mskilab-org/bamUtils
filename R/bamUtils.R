@@ -17,20 +17,20 @@
 #' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file  
 #' @param gr Granges (default = intervals)
 #' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
-#' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs in which at least one read falls in the supplied interval (default ==FALSE)
-#' @param stripstrand boolean Flag to ignore strand information on the query intervals (default == TRUE)
-#' @param what vector What fields to pull down from BAM. (default == \code{scanBamWhat()})
-#' @param verbose boolean verbose flag (default == FALSE)
+#' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs in which at least one read falls in the supplied interval (default = FALSE)
+#' @param stripstrand boolean Flag to ignore strand information on the query intervals (default = TRUE)
+#' @param what vector What fields to pull down from BAM. (default = \code{scanBamWhat()})
+#' @param verbose boolean verbose flag (default = FALSE)
 #' @param tag vector Additional tags to pull down from the BAM (e.g. 'R2')
-#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
-#' @param pairs.grl.split boolean Return reads as GRangesList. Controls whether get.pairs.grl() does split (default == TRUE)
-#' @param as.data.table boolean Return reads in the form of a data.table rather than GRanges/GRangesList (default == FALSE)
-#' @param ignore.indels boolean Flag messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs (default == FALSE)
+#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default = FALSE)
+#' @param pairs.grl.split boolean Return reads as GRangesList. Controls whether get.pairs.grl() does split (default = TRUE)
+#' @param as.data.table boolean Return reads in the form of a data.table rather than GRanges/GRangesList (default = FALSE)
+#' @param ignore.indels boolean Flag messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs (default = FALSE)
 #' @param ... futher arguments passed to Rsamtools::scanBamFlag()
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
@@ -636,8 +636,8 @@ get.mate.gr = function(reads)
 #' Takes reads object and returns GRangesList with each read and its mate (if exists)
 #'
 #' @param reads GRanges holding reads
-#' @param pairs.grl.split boolean Flag to return as GRangesList if TRUE (default == TRUE)
-#' @param verbose boolean verbose flag (default == FALSE)
+#' @param pairs.grl.split boolean Flag to return as GRangesList if TRUE (default = TRUE)
+#' @param verbose boolean verbose flag (default = FALSE)
 #' @export
 get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 {
@@ -794,7 +794,7 @@ alpha = function(col, alpha)
 #' Takes GRanges or GappedAlignments object "reads" and uses cigar, MD, seq fields
 #' to return variant bases and ranges
 #'
-#' Teturns GRangesList (of same length as input) of variant base positions with character vector 
+#' Returns GRangesList (of same length as input) of variant base positions with character vector 
 #' $varbase field populated with variant bases for each GRanges item in grl[[k]], 
 #' with the following handling for insertions, deletions, and substitution GRange's:
 #'
@@ -1127,12 +1127,12 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' If use.D = TRUE, then will treat "D" flags (deletion) in addition to "N" flags as indicative of deletion event.
 #'
 #' @param reads GenomicRanges or GappedAlignments or data.frame input reads
-#' @param verbose boolean verbose flag (default == TRUE)
-#' @param fast boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default == TRUE)
-#' @param use.D boolean Treats "D" tags as deletions, along with "N" tags (default == TRUE)
-#' @param rem.soft boolean Pick up splice 'S', soft-clipped (default == TRUE)
-#' @param get.seq boolean Get InDels (default == TRUE)
-#' @param return.grl boolean Return as GRangesList (default == TRUE)
+#' @param verbose boolean verbose flag (default = TRUE)
+#' @param fast boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default = TRUE)
+#' @param use.D boolean Treats "D" tags as deletions, along with "N" tags (default = TRUE)
+#' @param rem.soft boolean Pick up splice 'S', soft-clipped (default = TRUE)
+#' @param get.seq boolean Get InDels (default = TRUE)
+#' @param return.grl boolean Return as GRangesList (default = TRUE)
 #' @export
 splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
 {
@@ -1391,8 +1391,8 @@ bamflag = function(reads)
 #' to give an identifier for determine duplicates in a read pile
 #'
 #' @param reads GenomicRanges or GappedAlignments or data.frame holding the reads
-#' @param secondary boolean including secondary alignment(s) (default == FALSE)
-#' @param gr.string boolean input reads into gr.string() (default == FALSE)
+#' @param secondary boolean including secondary alignment(s) (default = FALSE)
+#' @param gr.string boolean input reads into gr.string() (default = FALSE)
 #' @export
 bamtag = function(reads, secondary = FALSE, gr.string = FALSE)
 {
@@ -1540,10 +1540,10 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 #'
 #' @param bams character vector of paths to bam files
 #' @param gr GRanges of (width=1) sites i.e. intervals at which to compute base coujnts
-#' @param min.mapq integer Minimal mapping quality at which to compute bases
-#' @param max.baseq integer Minimal base qualitya t which to compute bases
-#' @param max.depth integer Maximum read depth to consider
-#' @param indel boolean Flag whether to consider indels (default FALSE)
+#' @param min.mapq integer Minimal mapping quality at which to compute bases (default = 0)
+#' @param min.baseq integer Minimal base quality at which to compute bases (default = 20)
+#' @param max.depth integer Maximum read depth to consider (default = 500)
+#' @param indel boolean Flag whether to consider indels (default = FALSE)
 #' @param ... other args be passed to read.bam(). Please see documentation for read.bam()
 #' @return GRanges annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
 #' @author Marcin Imielinski

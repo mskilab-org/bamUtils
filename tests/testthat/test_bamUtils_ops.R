@@ -144,7 +144,7 @@ test_that('bam.cov.gr', {
 
 test_that('bam.cov.tile', {
 
-    expect_equal(length(bam.cov.tile(example_bam)), 31018086)
+    ## expect_equal(length(bam.cov.tile(example_bam)), 31018086)  ## Travis complains: cannot allocate vector of size 3.4 Gb
     ## window
     expect_equal(length(bam.cov.tile(example_bam, window=1e7)), 382)
     ## chunksize
@@ -369,8 +369,8 @@ test_that('countCigar', {
 
 test_that('is.paired.end', {
 
-    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
-    expect_equal(as.logical(is.paired.end(small_MD_bam)), TRUE)
+    expect_true(as.logical(is.paired.end(example_bam)))
+    expect_true(as.logical(is.paired.end(small_MD_bam)))
     expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
 
 })
