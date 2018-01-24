@@ -19,23 +19,23 @@ bam.cov.gr(bam, bai = NULL, intervals = NULL, all = FALSE,
 
 \item{all}{boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)}
 
-\item{isPaired}{boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
+\item{isPaired}{boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)}
 
-\item{isProperPair}{boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
+\item{isProperPair}{boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default = NA)}
 
-\item{isUnmappedQuery}{boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
+\item{isUnmappedQuery}{boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)}
 
-\item{hasUnmappedMate}{boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
+\item{hasUnmappedMate}{boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)}
 
-\item{isNotPassingQualityControls}{boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)}
+\item{isNotPassingQualityControls}{boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = FALSE)}
 
-\item{isDuplicate}{boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)}
+\item{isDuplicate}{boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default = FALSE)}
 
 \item{mc.cores}{integer Number of cores in mclapply (default = 1)}
 
-\item{chunksize}{integer How many intervals to process per core (default =10)}
+\item{chunksize}{integer How many intervals to process per core (default = 10)}
 
-\item{verbose}{boolean "verbose" flag (default == FALSE)}
+\item{verbose}{boolean "verbose" flag (default = FALSE)}
 
 \item{...}{futher arguments passed into Rsamtools::scanBamFlag()}
 }

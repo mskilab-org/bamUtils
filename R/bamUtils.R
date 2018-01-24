@@ -6,33 +6,32 @@
 
  
 #' @name read.bam
-#' @title read.bam
+#' @title Read BAM file into GRanges or data.table
 #' @description 
-#' 
-#' Read BAM file into GRanges or data.table
 #'
-#' Wrapper around Rsamtools bam scanning functions,
-#' by default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
-#' @param bam Input bam file. Advisable to make "bam" a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
-#' @param bami Input bam index file.
-#' @param gr GRanges of intervals to retrieve
-#' @param intervals GRanges of intervals to retrieve
-#' @param stripstrand Flag to ignore strand information on the query intervals. Default TRUE
-#' @param what What fields to pull down from BAM. Default \code{scanBamWhat()}
-#' @param unpack.flag Add features corresponding to read flags. Default FALSE
-#' @param verbose Increase verbosity
-#' @param tag Additional tags to pull down from the BAM (e.g. 'R2')
-#' @param isPaired See documentation for \code{scanBamFlag}. Default NA
-#' @param isProperPair See documentation for \code{scanBamFlag}. Default NA
-#' @param isUnmappedQuery See documentation for \code{scanBamFlag}. Default NA
-#' @param hasUnmappedMate See documentation for \code{scanBamFlag}. Default NA
-#' @param isNotPassingQualityControls See documentation for \code{scanBamFlag}. Default NA
-#' @param isDuplicate See documentation for \code{scanBamFlag}. Default FALSE
-#' @param isValidVendorRead See documentation for \code{scanBamFlag}. (default = TRUE)
-#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default = TRUE)
-#' @param as.data.table Return reads in the form of a data.table rather than GRanges/GRangesList
-#' @param ignore.indels messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
-#' @param ... passed to \code{scanBamFlag}
+#' Wrapper around Rsamtools BAM scanning functions
+#' By default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
+#' 
+#' @param bam string Input BAM file. Advisable to make BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
+#' @param bai string Input BAM index file.
+#' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file  
+#' @param gr Granges (default = intervals)
+#' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
+#' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval (default == FALSE)
+#' @param stripstrand boolean Flag to ignore strand information on the query intervals (default == TRUE)
+#' @param what vector What fields to pull down from BAM. (default == \code{scanBamWhat()})
+#' @param verbose boolean verbose flag (default == FALSE)
+#' @param tag vector Additional tags to pull down from the BAM (e.g. 'R2')
+#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
+#' @param pairs.grl.split boolean Return reads as GRangesList. Controls whether get.pairs.grl() does split (default == TRUE)
+#' @param as.data.table boolean Return reads in the form of a data.table rather than GRanges/GRangesList (default == FALSE)
+#' @param ignore.indels boolean Flag messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs (default == FALSE)
+#' @param ... futher arguments passed to Rsamtools::scanBamFlag()
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
 read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
@@ -80,49 +79,61 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
         }
     }
     ## if intervals unspecified will try to pull down entire bam file (CAREFUL)
-    if (length(intervals)==0)
+    if (length(intervals)==0){
         intervals = NULL
+    }
 
-    if (is.null(intervals))
+    if (is.null(intervals)){
         intervals = gr
+    }
 
     if (is.null(intervals))
     {
-        if (all)
+        if (all){
             intervals = si2gr(seqinfo(bam))
-        else
-            stop('Must provide non empty interval list')
+        }
+        else{
+            stop('Error: Must provide non empty interval list')
+        }
     }
 
-    if (class(intervals) == 'data.frame')
+    if (class(intervals) == 'data.frame'){
         intervals = seg2gr(intervals);
+    }
 
-    if (inherits(intervals, 'GRangesList'))
+    if (inherits(intervals, 'GRangesList')){
         intervals = unlist(intervals);
+    }
 
-    if (stripstrand)
+    if (stripstrand){
         strand(intervals) = '*'
+    }
 
     intervals = reduce(intervals);
 
     now = Sys.time();
 
-    if (pairs.grl)
-        paired = F
+    if (pairs.grl){
+        paired = FALSE
+    }
 
     flag = scanBamFlag(isPaired = isPaired, isProperPair = isProperPair, isUnmappedQuery = isUnmappedQuery,
                        hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
+
     param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
 
-    if (verbose)
+    if (verbose){
         cat('Reading bam file\n')
-    if (class(bam) == 'BamFile')
+    }
+    if (class(bam) == 'BamFile'){
         out <- scanBam(bam, param=param)
-    else
+    }
+    else{
         out <- scanBam(bam, index=bai, param=param)
+    }
     if (verbose) {
         print(Sys.time() - now)
         print('BAM read. Making into data.frame')
@@ -136,22 +147,27 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
             print(Sys.time() - now)
             print('combining lists')
         }
-        out <- as.data.frame(rbindlist(lapply(out, function(x)
-        {
+
+        out <- as.data.frame(rbindlist(lapply(out, function(x){
+            
             x <- c(x[-match('tag', names(x))], x$tag)
 
             x <- x[sapply(x, length)>0]
             conv <- which(!(sapply(x, class) %in% c('integer', 'numeric', 'character')))
             x[conv] <- lapply(x[conv], as.character)
 
-            for (t in tag)
-                if (!(t %in% names(x)))
+            for (t in tag){
+                if (!(t %in% names(x))){
                     x[[t]] = rep(NA, length(x$qname))
+                }
+            }
 
-            if (!('R2' %in% names(x)) && 'R2' %in% tag)
+            if (!('R2' %in% names(x)) && 'R2' %in% tag){
                 x$R2 <- rep(NA, length(x$qname))
-            if (!('Q2' %in% names(x)) && 'Q2' %in% tag)
+            }
+            if (!('Q2' %in% names(x)) && 'Q2' %in% tag){
                 x$Q2 <- rep(NA, length(x$qname))
+            }
             x
         })))
 
@@ -174,6 +190,7 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
             })
             out$cigar[torun] <- new.cigar
         }
+
         cigs <- countCigar(out$cigar)
         # out$pos2 <- out$pos + cigs[, "M"]
         out$pos2 <- out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
@@ -184,8 +201,8 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
         }
         out$qwidth = nchar(out$seq)
         unm = is.na(out$pos)
-        if (any(unm))
-        {
+        if (any(unm)){
+
             out$pos[unm] = 1
             out$pos2[unm] = 0
             out$strand[unm] = '*'
@@ -197,26 +214,30 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
         if (!as.data.table) {
             out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
             values(out) <- vals;
-        } else {
+        } 
+        else {
             out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
-                                        #out$uname = paste(out$qname, ifelse(bamflag(out$flag)[, 'isFirstMateRead'], '_r1', '_r2'), sep = '')
     }
     else {
-        if (!as.data.table)
+        if (!as.data.table){
             return(GRanges(seqlengths = seqlengths(intervals)))
-        else
+        }
+        else{
             return(data.table())
+        }
     }
 
     if (verbose)
     {
-        if (as.data.table)
+        if (as.data.table){
             cat(sprintf('Extracted %s reads\n', nrow(out)))
-        else
+        }
+        else{
             cat(sprintf('Extracted %s reads\n', length(out)))
+        }
         print(Sys.time() - now)
     }
 
@@ -230,8 +251,7 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
             cat('done\n')
             print(paste0('Total time to complete: ', Sys.time() - now))
         }
-        if
-        (pairs.grl.split && !as.data.table){
+        if (pairs.grl.split && !as.data.table){
             names(out) = NULL;
             values(out)$col = 'gray';
             values(out)$border = 'gray';
@@ -257,15 +277,15 @@ read.bam = function(bam, intervals = NULL, ## GRanges of intervals to retrieve
 #' @param bai string Input BAM index file
 #' @param intervals GRanges of intervals to retrieve
 #' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
-#' @param verbose boolean "verbose" flag (default == FALSE)
-#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default == FALSE)
+#' @param isPaired boolean Flag indicates whether unpaired (FALSE), paired (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isProperPair boolean Flag indicates whether improperly paired (FALSE), properly paired (TRUE), or any (NA) read should be returned. A properly paired read is defined by the alignment algorithm and might, e.g., represent reads aligning to identical reference sequences and with a specified distance. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isUnmappedQuery boolean Flag indicates whether unmapped (TRUE), mapped (FALSE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param hasUnmappedMate boolean Flag indicates whether reads with mapped (FALSE), unmapped (TRUE), or any (NA) mate should be returned. See documentation for Rsamtools::scanBamFlag(). (default = NA)
+#' @param isNotPassingQualityControls boolean Flag indicates whether reads passing quality controls (FALSE), reads not passing quality controls (TRUE), or any (NA) read should be returned. See documentation for Rsamtools::scanBamFlag(). (default = FALSE)
+#' @param isDuplicate boolean Flag indicates that un-duplicated (FALSE), duplicated (TRUE), or any (NA) reads should be returned. 'Duplicated' reads may represent PCR or optical duplicates. See documentation for Rsamtools::scanBamFlag(). (default = FALSE)
 #' @param mc.cores integer Number of cores in mclapply (default = 1)
-#' @param chunksize integer How many intervals to process per core (default =10)
+#' @param chunksize integer How many intervals to process per core (default = 10)
+#' @param verbose boolean "verbose" flag (default = FALSE)
 #' @param ... futher arguments passed into Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
@@ -279,23 +299,18 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
         stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
     }
 
-    if (is.character(bam)) {
-        if (!is.null(bai)) {
+    if (is.character(bam))
+        if (!is.null(bai))
             bam = BamFile(bam, bai)
-        }
         else
         {
-            if (file.exists(paste(bam, 'bai', sep = '.'))) {
+            if (file.exists(paste(bam, 'bai', sep = '.')))
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            }
-            else if (file.exists(gsub('.bam$', '.bai', bam))) {
+            else if (file.exists(gsub('.bam$', '.bai', bam)))
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            }
-            else {
+            else
                 stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
-            }
         }
-    }
 
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
@@ -337,6 +352,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 
 
 
+
 #' @name bam.cov.tile
 #' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
 #' @description
@@ -347,17 +363,17 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' corresponding to midpoint or overlaps of corresponding (proper pair) fragment (uses TLEN and POS for positive strand reads that are part of a proper pair)
 #'
 #' @param bam.file string Input BAM file
-#' @param window integer Window size (in bp) (default == 1e2)
-#' @param chunksize integer Size of window (default == 1e5)
-#' @param min.mapq integer Minimim map quality reads to consider for counts (default == 30)
-#' @param verbose boolean "verbose" flag (default == TRUE)
-#' @param max.tlen max paired-read insert size to consider
-#' @param st.flag boolean Samtools flag to filter reads on (default == '-f 0x02 -F 0x10')
-#' @param fragments boolean Flag (default == FALSE)
-#' @param region um? (default == NULL)
-#' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default == FALSE)
-#' @param midpoint boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment
-#' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered
+#' @param window integer Window size (in bp) (default = 1e2)
+#' @param chunksize integer Size of window (default = 1e5)
+#' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
+#' @param verbose boolean Flag to increase vebosity (default = TRUE)
+#' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
+#' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
+#' @param fragments boolean Flag (default = FALSE)
+#' @param region um? (default = NULL)
+#' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
+#' @param midpoint boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment (default = TRUE)
+#' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
 #' @export
 bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
@@ -476,8 +492,9 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
 
 
-#' @name bam.cov.tile
-#' @title Get coverage as GRanges from BAM on genome tiles across seqlengths of genome
+
+#' @name oneoffs
+#' @title Calls samtools mpileup to dump tsv of "one off" variants / sites
 #' @description
 #'
 #' Calls samtools mpileup to dump tsv of "one off" variants / sites (i.e. that are present in exactly one read per site)
@@ -494,57 +511,65 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 #' @export
 oneoffs = function(out.file, bam, ref, min.bq = 30, min.mq = 60, indel = FALSE, chunksize = 1e4, verbose = TRUE)
 {   
-  if (indel)
-    cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[\\+\\-]\\d+[ACGTNacgtn]+[\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
-    else
-      cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[ACGTacgt][\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
-  
-  p = pipe(cmd, open = 'r')
-
-  start = Sys.time()
-  fields = c('chr', 'pos', 'ref', 'cov', 'alt', 'bq', 'mq')
-
-  i = nv = nl = 0
-  while (length(chunk <- readLines(p, n = chunksize))>0)
-  {
-    tab = fread(paste(chunk, collapse = '\n'), sep = '\t', header = FALSE)
-    setnames(tab, fields)
-    tab[ ,varnum := 1:.N]
-
-    if (indel)
-    {
-      tab[, left.pad := nchar(gsub("[\\+\\-].*", '', alt))]
-      tab[, wid := as.numeric(gsub('.*([\\+\\-]\\d+).*', '\\1', alt))]
-      tab[, var := mapply(function(x,i) substr(x, 1, i),
-                          gsub('.*[\\+\\-]\\d+([ACGTNacgtn]+).*', '\\1', alt),
-                          abs(wid))]
-      tab[wid>0, bq := mapply(function(x, i) substr(x, i, i), bq, wid)]
-      tab[wid<0, bq := NA]
-      varb = tab[, .(chr, pos, alt, wid, mq = NA, bq = NA)]                          
+    if (indel){
+        cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[\\+\\-]\\d+[ACGTNacgtn]+[\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
     }
-    else
-      varb = tab[, .(chr = chr, pos = pos, alt = unlist(strsplit(alt, '')),
-                     wid = 0,
-                     bq = utf8ToInt(unlist(strsplit(bq, '')))-33,
-                     mq = utf8ToInt(unlist(strsplit(mq, '')))-33), by = varnum][!(alt %in% c(".", ",")), ]
+    else{
+        cmd = sprintf('samtools mpileup -x -B -Q %s -q %s -s -f %s %s | grep -P "\\w+\\s\\w+\\s\\w+\\s[\\,\\.]*[ACGTacgt][\\,\\.]*\\s"', min.bq, min.mq, ref, bam)
+    }
+  
+    p = pipe(cmd, open = 'r')
+
+    start = Sys.time()
+    fields = c('chr', 'pos', 'ref', 'cov', 'alt', 'bq', 'mq')
+
+    i = nv = nl = 0
+
+    while (length(chunk <- readLines(p, n = chunksize)) > 0){
+
+        tab = fread(paste(chunk, collapse = '\n'), sep = '\t', header = FALSE)
+        setnames(tab, fields)
+        tab[ ,varnum := 1:.N]
+
+        if (indel)
+        {
+            tab[, left.pad := nchar(gsub("[\\+\\-].*", '', alt))]
+            tab[, wid := as.numeric(gsub('.*([\\+\\-]\\d+).*', '\\1', alt))]
+            tab[, var := mapply(function(x,i) substr(x, 1, i),
+                gsub('.*[\\+\\-]\\d+([ACGTNacgtn]+).*', '\\1', alt),
+                abs(wid))]
+            tab[wid>0, bq := mapply(function(x, i) substr(x, i, i), bq, wid)]
+            tab[wid<0, bq := NA]
+            varb = tab[, .(chr, pos, alt, wid, mq = NA, bq = NA)]                          
+        }
+        else{
+            varb = tab[, .(chr = chr, pos = pos, alt = unlist(strsplit(alt, '')),
+                wid = 0,
+                bq = utf8ToInt(unlist(strsplit(bq, '')))-33,
+                mq = utf8ToInt(unlist(strsplit(mq, '')))-33), by = varnum][!(alt %in% c(".", ",")), ]
+        }
+
     
-    fwrite(varb, out.file, append = (i>0))
-    nv = nv + nrow(varb)
-    nl = nl + length(chunk)
-    i = i+1
-    if (verbose)
-    {
-      message('Wrote total of ',
-              nl, ' variants to ", out.file, ". Now at coordinate ',
-              varb[nrow(varb), sprintf("chr%s %s", chr, prettyNum(pos, ','))])
-      print(Sys.time() - start)
+        fwrite(varb, out.file, append = (i>0))
+        nv = nv + nrow(varb)
+        nl = nl + length(chunk)
+        i = i+1
+        if (verbose)
+        {
+            message('Wrote total of ',
+                nl, ' variants to ", out.file, ". Now at coordinate ',
+                varb[nrow(varb), sprintf("chr%s %s", chr, prettyNum(pos, ','))])
+            print(Sys.time() - start)
+        }
     }
-  }
   
-  close(p)
-  if (verbose)
+    close(p)
+    if (verbose){
     message('Done writing ', out.file)
+    }
 }
+
+
 
 
 #' @name get.mate.gr
@@ -598,6 +623,9 @@ get.mate.gr = function(reads)
 }
 
 
+
+
+
 #' @name get.pairs.grl
 #' @title Get coverage as GRanges from BAM on custom set of GRanges
 #' @description
@@ -605,7 +633,7 @@ get.mate.gr = function(reads)
 #' Takes reads object and returns GRangesList with each read and its mate (if exists)
 #'
 #' @param reads GRanges holding reads
-#' @param pairs.grl.split boolean returns as GRangesList if TRUE (default == TRUE)
+#' @param pairs.grl.split boolean Flag to return as GRangesList if TRUE (default == TRUE)
 #' @param verbose boolean verbose flag (default == FALSE)
 #' @export
 get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
@@ -675,6 +703,10 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
     }
 }
 
+
+
+
+
 #' @name count.clips
 #' @title Return data.frame with fields of "right" soft clips and "left" soft clips
 #' @description
@@ -737,6 +769,8 @@ count.clips = function(reads)
 
 
 
+
+
 ## alpha() used in varbase
 alpha = function(col, alpha)
 {
@@ -772,8 +806,8 @@ alpha = function(col, alpha)
 #' X = mismatch --> varbase represents mismatched bases
 #'
 #' @param reads GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from
-#' @param soft boolean Flag to include soft-clipped matches (default == TRUE)
-#' @param verbose boolean verbose flag (default == TRUE)
+#' @param soft boolean Flag to include soft-clipped matches (default = TRUE)
+#' @param verbose boolean verbose flag (default = TRUE)
 #' @name varbase
 #' @export
 varbase = function(reads, soft = TRUE, verbose = TRUE)
@@ -881,56 +915,53 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
     if (any(clip.right)){
         r.end[clip.right] = r.end[clip.right]+sapply(cigar.lens[which(clip.right)], function(x) x[length(x)])
-    ## split md string into chars after removing "deletion" signatures and also
-    ## any soft clipped base calls (bases followed by a 0)
     }
 
-
-                                        # split md string into chars after removing "deletion" signatures and also
-                                        # any soft clipped base calls (bases followed by a 0)
-    ##    md.vals = strsplit(gsub('([ATGCN])', '|\\1|', gsub('\\^[ATGCN]+', '|', md)), '\\|')
     md.vals = strsplit(gsub('([a-zA-Z])', '|\\1|', gsub('\\^[a-zA-Z]+', '|', md)), '\\|')
 
 
     ## ranges of different cigar elements relative to query ie read-centric coordinates
-    starts.seq = lapply(1:length(cigar.lens), function(i)
-    {
+    starts.seq = lapply(1:length(cigar.lens), function(i){
+
         x = c(0, cigar.lens[[i]])
         x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))+1] = 0  ## deletions have 0 width on query
         cumsum(x[1:(length(x)-1)])+1
     })
 
-    ends.seq = lapply(1:length(cigar.lens), function(i)
-    {
+    ends.seq = lapply(1:length(cigar.lens), function(i){
+
         x = cigar.lens[[i]];
         x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))] = 0
         cumsum(x)
     })
 
     ## ranges of different cigar elements relative to reference coordinatse
-    starts.ref = lapply(1:length(cigar.lens), function(i)
-    {
+    starts.ref = lapply(1:length(cigar.lens), function(i){
+
         x = c(0, cigar.lens[[i]]);
         x[which(cigar.vals[[i]] %in% c('I'))+1] = 0 ## insertions have 0 width on reference / subject
         cumsum(x[1:(length(x)-1)]) + r.start[i]
     })
 
-    ends.ref = lapply(1:length(cigar.lens), function(i)
-    {
+    ends.ref = lapply(1:length(cigar.lens), function(i){
+
         x = cigar.lens[[i]];
         x[which(cigar.vals[[i]] %in% c('I'))] = 0
         cumsum(x) + r.start[i] - 1
     })
+
     ## now using MD find coordinates of mismatched bases (using starts and ends of M regions)
     ## find coords of subs on genome
-    tmp.pos = lapply(1:length(md.vals), function(i)
-    {
+    tmp.pos = lapply(1:length(md.vals), function(i){
+
         x = md.vals[[i]]
 
-                                        #        nix = grepl('[ATGCN]', x);
         nix = grepl('[a-zA-Z]', x);
-        if (!any(nix))
+
+        if (!any(nix)){
             return(c())
+        }
+
         p = rep(0, length(x))
         p[!nix] = as.numeric(x[!nix])
         p[nix] = 1
@@ -940,8 +971,8 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         m.st.g = starts.ref[[i]][mix]
         m.st.r = starts.seq[[i]][mix]
         s.match = rep(NA, length(s.pos.m)) ## indices of matching "M" cigar element for each sub
-        for (ii in 1:length(s.pos.m))
-        {
+        
+        for (ii in 1:length(s.pos.m)){
             j = 0;
             done = FALSE
             for (j in 0:(length(m.st)-1)){
@@ -959,10 +990,13 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     })
     subs.pos = lapply(tmp.pos, function(x) x[1,])
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
-    if (is.null(seq))
+    if (is.null(seq)){
         subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCNatcgn]', value = T), function(x) rep('X', length(x))) ## replace with N
-    else        
+    }
+    else{
         subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
+    }      
+
     ## make sure MD and cigar are consistent
     ## (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
     ## also some MD are NA
@@ -972,14 +1006,14 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     good.md = which(!is.na(md))
     ##  good.md = which(mlen.md == mlen.cigar & !is.na(md))
 
-    if (any(na = is.na(md)))
-    {
+    if (any(na = is.na(md))){
+
         warning('Warning: MD field absent from one or more input reads')
         good.md = which(!na)
     }
     ## now make GRanges of subs
-    if (length(good.md) > 0)
-    {
+    if (length(good.md) > 0){
+
         if (any(mlen.md[good.md] != mlen.cigar[good.md])){
             warning('Warning: The lengths of some MD strings do not match the number of M positions on the corresponding CIGAR string: some variants may not be correctly mapped to the genome')
         }
@@ -987,8 +1021,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         iix.md = unlist(lapply(good.md, function(x) rep(x, length(subs.pos[[x]]))))
         tmp = unlist(subs.pos[good.md])
 
-        if (!is.null(tmp))
-        {
+        if (!is.null(tmp)){
             subs.gr = GRanges(sn[ix][iix.md], IRanges(tmp, tmp), strand = '*')
             values(subs.gr)$varbase = unlist(subs.base[good.md])
             values(subs.gr)$varlen = 1
@@ -1024,22 +1057,21 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
     if (length(cigar.vals)>0){
         
-        var.seq = lapply(1:length(cigar.vals),
-                         function(i){                                 
-                            if (ends.seq[i]<starts.seq[i])
-                            {
-                                return('') # deletion
-                            }
-                            else
-                            {
-                                if (length(seq[[iix[i]]])==0){
-                                    rep('N', ends.seq[i]-starts.seq[i]+1)
-                                }
-                                else{
-                                    seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
-                                }
-                            }
-                         })
+        var.seq = lapply(1:length(cigar.vals), function(i){                                 
+            if (ends.seq[i]<starts.seq[i]){
+                return('') # deletion
+            }
+            else{
+                                
+                if (length(seq[[iix[i]]])==0){
+                    rep('N', ends.seq[i]-starts.seq[i]+1)
+                }
+                else{
+                    seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
+                }
+            }
+        })
+
         other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)        
         values(other.gr)$varbase = sapply(var.seq, paste, collapse = '')
         values(other.gr)$varlen = cigar.lens
@@ -1051,8 +1083,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         out.gr = subs.gr
     }
     ## add default colors to out.gr
-    VAR.COL = c('XA' = 'green', 'XG' = 'brown', 'XC' = 'blue', 'XT' = 'red', 'D' = 'white', 
-    'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
+    VAR.COL = c('XA' = 'green', 'XG' = 'brown', 'XC' = 'blue', 'XT' = 'red', 'D' = 'white',  'I'= 'purple', 'N' = alpha('gray', 0.2), 'XX' = 'black', 'S' = alpha('pink', 0.9))
 
     col.sig = as.character(out.gr$type)
     xix = out.gr$type == 'X'
@@ -1111,8 +1142,9 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         stop('Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.')
     }
 
-    if (inherits(reads, 'GRangesList'))
+    if (inherits(reads, 'GRangesList')){
       reads = unlist(reads)
+    }
 
     nreads = length(reads)
 
@@ -1458,61 +1490,6 @@ is.paired.end = function(bams)
 
 
 
-#' @name is.paired.end
-#' @title Check if BAM file is paired end by using 0x1 flag
-#' @description
-#'
-#' Create GRanges of read mates from reads
-#'
-#' @return \code{GRanges} corresponding to mates of reads
-#' @name get.mate.gr
-#' @export
-get.mate.gr = function(reads)
-{
-
-    if (inherits(reads, 'GRanges')) {
-        mpos = values(reads)$mpos
-        mrnm = as.vector(values(reads)$mrnm)
-        mapq = values(reads)$MQ
-        bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
-        mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (ie as if unmapped)
-    } 
-    else if (inherits(reads, 'data.table')) {
-        mpos <- reads$mpos
-        mrnm <- reads$mrnm
-        mapq = reads$MQ
-        bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
-        mrnm[bad.chr] <- reads$seqnames[bad.chr]
-    }
-
-    if (inherits(reads, 'GappedAlignments')){
-        mwidth = qwidth(reads)
-    }
-    else{
-        mwidth = reads$qwidth
-        mwidth[is.na(mwidth)] = 0
-    }
-
-    mwidth[is.na(mpos)] = 0
-    mwidth[bad.chr] = 0;  # we set mates with "bad" chromosomes to have 0 width
-    mpos[is.na(mpos)] = 1;
-
-    if (inherits(reads, 'GappedAlignments')){
-        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    }
-    else if (inherits(reads, 'GRanges')){
-        GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    }
-    else if (inherits(reads, 'data.table')){
-        ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
-    }
-}
-
-
-
-
-
-
 #' @name chunk
 #' @title  chunk
 #' @description
@@ -1544,6 +1521,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 
     return(out)
 }
+
 
 
 
@@ -1675,6 +1653,10 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 }
 
 
+
+
+
+
 #' @name mafcount
 #' @title Wrapper around varcount adapted to tumor and normal "paired" bams
 #' @description 
@@ -1722,27 +1704,38 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
     chunks = chunk(1, length(maf), chunk.size)
 
         
-        if (is.null(maf$Tumor_Seq_Allele1))
-            maf$Tumor_Seq_Allele1 = maf$alt
+    if (is.null(maf$Tumor_Seq_Allele1)){
+        maf$Tumor_Seq_Allele1 = maf$alt
+    }
+    
    
-        if (is.null(maf$Tumor_Seq_Allele1))
-            maf$Tumor_Seq_Allele1 = maf$ALT
+    if (is.null(maf$Tumor_Seq_Allele1)){
+        maf$Tumor_Seq_Allele1 = maf$ALT
+    }
 
-        if (is.null(maf$Reference_Allele))
-            maf$Reference_Allele = maf$ref
-        
-        if (is.null(maf$Reference_Allele))
-            maf$Reference_Allele = maf$REF
 
-        if (!all(is.character(maf$Tumor_Seq_Allele1)))
-            maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
+    if (is.null(maf$Reference_Allele)){
+        maf$Reference_Allele = maf$ref
+    }
         
-        if (!all(is.character(maf$Reference_Allele)))
-            maf$Reference_Allele = as.character(maf$Reference_Allele)
-            
-            
-        if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1))
-            stop("Error: Can't locate variant columns in input granges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele")
+    if (is.null(maf$Reference_Allele)){
+        maf$Reference_Allele = maf$REF
+    }
+
+
+    if (!all(is.character(maf$Tumor_Seq_Allele1))){
+        maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
+    }
+
+        
+    if (!all(is.character(maf$Reference_Allele))){
+        maf$Reference_Allele = as.character(maf$Reference_Allele)
+    }
+
+                        
+    if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
+        stop('Error: Cannot locate variant columns in input GRanges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele')
+    }
             
     maf$alt.count.t = maf$ref.count.t = NA
 
@@ -1819,7 +1812,8 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             )
         }
                
-    return(out)               
+    return(out) 
+
     }, mc.cores = mc.cores))
 
     maf$alt.count.t = tmp[,1]

@@ -9,7 +9,7 @@ get.pairs.grl(reads, pairs.grl.split = TRUE, verbose = FALSE)
 \arguments{
 \item{reads}{GRanges holding reads}
 
-\item{pairs.grl.split}{boolean returns as GRangesList if TRUE (default == TRUE)}
+\item{pairs.grl.split}{boolean Flag to return as GRangesList if TRUE (default == TRUE)}
 
 \item{verbose}{boolean verbose flag (default == FALSE)}
 }

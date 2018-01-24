@@ -107,7 +107,36 @@ test_that('read.bam', {
 test_that('bam.cov.gr', {
 
     expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
-    
+    ## intervals
+    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))), 26)
+    expect_match(as.character(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$file), 'smallHCC1143BL.bam')
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$records), 1065)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$nucleotides), 107565)
+    ## all
+    ## verbose
+    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
+    ## isPaired 
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
+    ## isProperPair
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$records), 77)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$nucleotides), 7777)
+    ## isUnmappedQuery 
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$records), 0)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$nucleotides), 0)
+    ## hasUnmappedMate 
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$records), 0)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$nucleotides), 0)
+    ## isNotPassingQualityControls turned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)$records), 0)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls= TRUE)$nucleotides), 0)
+    ## isDuplicate 
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$records), 98)
+    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$nucleotides), 9898)
+    ## mc.cores 
+    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
+    ## chunksize 
+    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
 
 })
 
@@ -139,6 +168,11 @@ test_that('bam.cov.tile', {
     ## midpoint
 
 })
+
+
+
+## oneoffs()
+
 
 
 ## get.mate.gr()
@@ -181,6 +215,32 @@ test_that('count.clips', {
 
 
 ## varbase
+test_that('varbase', {
+    ## default
+    expect_true(is(varbase(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'))
+    expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varbase)[1], 'TAACCCCAACCAAAACCGCCCAACCCTAA')
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varbase)[2], 'C')    
+    expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varlen[1]), 29)
+    expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varlen[2]), 1)
+    expect_equal(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$type)[1], 'S')
+    expect_equal(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$type)[2], 'X')
+    expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$col)[1], '#FFC0CBE6')
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$col)[2], 'blue')    
+    expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$border)[1], '#FFC0CBE6')
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$border)[2], 'blue')   
+    ## soft   
+    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$varbase, 'C')
+    expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$varlen), 1)
+    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$type, 'X')
+    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$col, 'blue')
+    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$border, 'blue')    
+    ## verbose
+    expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]], verbose=FALSE)), 2)
+
+})
 
 
 
@@ -307,9 +367,44 @@ test_that('countCigar', {
 
 
 
-##test_that('is.paired.end', {
-##    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
-##    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
-##})
+test_that('is.paired.end', {
+
+    expect_equal(as.logical(is.paired.end(example_bam)), TRUE)
+    expect_equal(as.logical(is.paired.end(small_MD_bam)), TRUE)
+    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
+
+})
+
+
+test_that('chunk', {
+
+    expect_equal(dim(chunk(2, 10, 1, length.out=4))[1], 4)
+    expect_equal(dim(chunk(2, 10, 1, length.out=4))[2], 2)
+
+})
+
+
+
+### varcount
+
+
+
+### mafcount
+
+
+
+### hets
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -9,9 +9,9 @@ varbase(reads, soft = TRUE, verbose = TRUE)
 \arguments{
 \item{reads}{GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from}
 
-\item{soft}{boolean Flag to include soft-clipped matches (default == TRUE)}
+\item{soft}{boolean Flag to include soft-clipped matches (default = TRUE)}
 
-\item{verbose}{boolean verbose flag (default == TRUE)}
+\item{verbose}{boolean verbose flag (default = TRUE)}
 }
 \description{
 Takes GRanges or GappedAlignments object "reads" and uses cigar, MD, seq fields
