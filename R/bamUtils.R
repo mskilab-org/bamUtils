@@ -132,6 +132,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     else{
         out <- scanBam(bam, index=bai, param=param)
     }
+
     if (verbose) {
         print(Sys.time() - now)
         print('BAM read. Making into data.frame')
@@ -1573,103 +1574,129 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 }
 
 
+
 #' @name read_vcf
-#' @title read_vcf
+#' @title parses VCF into GRanges or data.table
 #'
 #' @description
 #'
-#' wrapper around variantAnnotation reads VCF into granges or data.table format
+#' Wrapper around Bioconductor VariantAnnotation. Reads VCF into GRanges or data.table format
 #'
+#' @param fn info 
+#' @param gr GRanges 
+#' @param hg string Human reference genome (default = 'hg19')
+#' @param geno (default = NULL)
+#' @param swap.header (default = NULL)
+#' @param verbose boolean Flag (default = FALSE)
+#' @param add.path boolean Flag (default = FALSE)
+#' @param tmp.dir string Path (defautl = '~/temp/.tmpvcf')
+#' @param ...
 #' @author Marcin Imielinski
 #' @export
 read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL, verbose = FALSE, add.path = FALSE, tmp.dir = '~/temp/.tmpvcf', ...)
-    {
-        require(VariantAnnotation)
-        in.fn = fn
+{
 
-        if (verbose)
-            cat('Loading', fn, '\n')
+    require(VariantAnnotation)
+    in.fn = fn
 
-        if (!is.null(gr))
-            {
-                tmp.slice.fn = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
-                cmd = sprintf('bcftools view %s %s > %s', fn,  paste(gr.string(gr.stripstrand(gr)), collapse = ' '), tmp.slice.fn)
-                if (verbose)
-                    cat('Running', cmd, '\n')
-                system(cmd)
-                fn = tmp.slice.fn
-            }
+    if (verbose){
+        cat('Loading', fn, '\n')
+    }
 
-        if (!is.null(swap.header))
-            {
-                if (!file.exists(swap.header))
-                    stop(sprintf('Swap header file %s does not exist\n', swap.header))
+    if (!is.null(gr)){
 
-                system(paste('mkdir -p', tmp.dir))
-                tmp.name = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
-                if (grepl('gz$', fn))
-                    system(sprintf("zcat %s | grep '^[^#]' > %s.body", fn, tmp.name))
-                else
-                    system(sprintf("grep '^[^#]' %s > %s.body", fn, tmp.name))
+        tmp.slice.fn = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
+        cmd = sprintf('bcftools view %s %s > %s', fn,  paste(gr.string(gr.stripstrand(gr)), collapse = ' '), tmp.slice.fn)
 
-                if (grepl('gz$', swap.header))
-                    system(sprintf("zcat %s | grep '^[#]' > %s.header", swap.header, tmp.name))
-                 else
-                    system(sprintf("grep '^[#]' %s > %s.header", swap.header, tmp.name))
+        if (verbose){
+            cat('Running', cmd, '\n')
+        }
+        system(cmd)
+        fn = tmp.slice.fn
+    }
 
-                system(sprintf("cat %s.header %s.body > %s", tmp.name, tmp.name, tmp.name))
-                vcf = readVcf(tmp.name, hg, ...)
-                system(sprintf("rm %s %s.body %s.header", tmp.name, tmp.name, tmp.name))
-            }
-        else
-            vcf = readVcf(fn, hg, ...)
+    if (!is.null(swap.header)){
 
-        out = granges(vcf)
+        if (!file.exists(swap.header)){
+            stop(sprintf('Error: Swap header file %s does not exist\n', swap.header))
+        }
 
-        if (!is.null(values(out)))
-            values(out) = cbind(values(out), info(vcf))
-        else
-            values(out) = info(vcf)
+        system(paste('mkdir -p', tmp.dir))
+        tmp.name = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
+        if (grepl('gz$', fn)){
+            system(sprintf("zcat %s | grep '^[^#]' > %s.body", fn, tmp.name))
+        }
+        else{
+            system(sprintf("grep '^[^#]' %s > %s.body", fn, tmp.name))
+        }
 
+        if (grepl('gz$', swap.header)){
+            system(sprintf("zcat %s | grep '^[#]' > %s.header", swap.header, tmp.name))
+        }
+        else{
+            system(sprintf("grep '^[#]' %s > %s.header", swap.header, tmp.name))
+        }
 
-        if (!is.null(geno))
-        {
+        system(sprintf("cat %s.header %s.body > %s", tmp.name, tmp.name, tmp.name))
+        vcf = readVcf(tmp.name, hg, ...)
+        system(sprintf("rm %s %s.body %s.header", tmp.name, tmp.name, tmp.name))
 
-          if (!is.logical(geno))
+    }
+    else{
+        vcf = readVcf(fn, hg, ...)
+    }
+
+    out = granges(vcf)
+
+    if (!is.null(values(out))){
+        values(out) = cbind(values(out), info(vcf))
+    }
+    else{
+        values(out) = info(vcf)
+    }
+
+    if (!is.null(geno)){
+
+        if (!is.logical(geno)){
             geno = TRUE
+        }
 
-
-          if (geno)
-            for (g in  names(geno(vcf)))
-            {
-              geno = names(geno(vcf))
-              warning(sprintf('Loading all geno fields:\n\t%s', paste(geno, collapse = ',')))
-            }
-
-          gt = NULL
-          if (length(g)>0)
-            {
-              for (g in geno)
-              {
-                m = as.data.frame(geno(vcf)[[g]])
-                names(m) = paste(g, names(m), sep = '_')
-                if (is.null(gt))
-                  gt = m
-                else
-                  gt = cbind(gt, m)
-              }
-              values(out) = cbind(values(out), as(gt, 'DataFrame'))
+        if (geno){
+            for (g in  names(geno(vcf))){
+                geno = names(geno(vcf))
+                warning(sprintf('Warning: Loading all geno fields:\n\t%s', paste(geno, collapse = ',')))
             }
         }
 
-          if (!is.null(gr))
-            system(paste('rm', tmp.slice.fn))
+        gt = NULL
 
-        if (add.path)
-            values(out)$path = in.fn
+        if (length(g) > 0){
 
-        return(out)
+            for (g in geno){
+                m = as.data.frame(geno(vcf)[[g]])
+                names(m) = paste(g, names(m), sep = '_')
+                if (is.null(gt)){
+                    gt = m
+                }
+                else{
+                    gt = cbind(gt, m)
+               }
+            }
+            
+            values(out) = cbind(values(out), as(gt, 'DataFrame'))
+        }
     }
+
+    if (!is.null(gr)){
+        system(paste('rm', tmp.slice.fn))
+    }
+
+    if (add.path){
+        values(out)$path = in.fn
+    }
+
+    return(out)
+}
 
 
 
@@ -1817,10 +1844,10 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
                 norm.count = vc$counts[, , 2]                      
             }
             else{
-                        norm.count = vc2$counts[, , 1]
+                norm.count = vc2$counts[, , 1]
             }
             if (is.null(dim(norm.count))){
-                        norm.count = cbind(norm.count)
+                norm.count = cbind(norm.count)
             }
 
             out = cbind(out, 
@@ -1850,127 +1877,6 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 
 
 
-#' @name hets
-#' @title Simple het "caller" meant to be used at validated het SNP sites for tumor / normal pairs
-#' @description 
-#'
-#' hets() outputs a tsv file of ALT ($alt.count.t, $alt.count.n) and REF ($ref.count.t, $ref.count.n) read counts to out.file
-#' for a tumor / normal pair across a set of sites specified by an input VCF
-#'
-#' @param tum.bam string path to tumor sample, input to Bamfile()
-#' @param norm.bam string path to normal sample, input to Bamfile()(optional) (default = NULL)
-#' @param out.file string path to TSV output file to be generated 
-#' @param vcf.file string path to VCF file of sites (eg hapmap or 1000G) at which to compute read counts
-#' @param chunk.size1 integer Number of variants to process from VCF file at a time (default = 1e3)
-#' @param chunk.size2 integer Number of variants to access from BAM file in a single iteration (default = 1e2)
-#' @param mc.cores integer Number of cores in mclapply (default = 1)
-#' @param verbose boolean Flag to increase verbosity (default = TRUE)
-#' @param na.rm logical Flag to remove rows with NA counts (default = TRUE)
-#' @param filt.norm logical Flag to remove any sites that have allele fraction of 0 or 1 or NA in MAF; if TRUE will remove any sites that have allele fraction 0 or 1 or NA in MAF 
-#' @return nil
-#' @author Marcin Imielinski
-#' @export
-hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3, chunk.size2 = 1e2, mc.cores = 1, verbose = TRUE, na.rm = TRUE, filt.norm = TRUE)
-{    
-    f = file(vcf.file, 'r')
-      
-    if (grepl('VCF', readLines(f, 1))){
-        vcf = TRUE
-    }
-    else{
-        vcf = FALSE
-    }
-
-    sl = hg_seqlengths()
-
-    if (verbose){
-        st = Sys.time()
-    }
-
-    nprocessed = 0
-    nhets = 0
-    first = TRUE
-    ## get past headers
-
-    ## while (grepl('^#', last.line <<- readLines(f, n=1))){}
-
-    if (verbose){
-        cat('Opened vcf, writing hets to text file', out.file, '\n')
-    }
-
-    out.cols = c('seqnames', 'start', 'end', 'Tumor_Seq_Allele1', 'Reference_Allele', 'ref.count.t', 'alt.count.t', 'ref.count.n', 'alt.count.n', 'alt.frac.t', 'ref.frac.t', 'alt.frac.n', 'ref.frac.n')
-
-    if (vcf){
-        col.ix = 1:5
-    }
-    else{
-        col.ix = match(c("Chromosome", "Start_position", "End_position", "Reference_Allele", "Tumor_Seq_Allele1", "Tumor_Seq_Allele2"), strsplit(last.line, '\t')[[1]])
-        if (any(is.na(col.ix))){
-            stop('Error: failure processing variant file: must be valid VCF or MAF')
-        }
-    }
-      
-    while (!is.null(tmp <- tryCatch(read.delim(file = f, as.is = T, header = F, nrows = chunk.size1)[, col.ix], error = function(x) NULL))){
-        
-        if (vcf){
-            names(tmp) = c('chr', 'start', 'name', 'ref', 'alt')
-        }
-        else{
-            names(tmp) = c('chr', 'start', 'name', 'ref', 'alt', 'alt2')
-            ## just in case the first tumor seq allele is equal to reference .. which happens in mafs
-            tmp$alt = ifelse(tmp$alt==tmp$ref, tmp$alt2, tmp$alt)
-        }
-              
-        loc = seg2gr(tmp, seqlengths = sl)    
-        clock({loc.count = mafcount(tum.bam, norm.bam, loc, indel = T, chunk.size = chunk.size2, mc.cores = mc.cores)})
-        nprocessed = nprocessed + length(loc.count)
-              
-        if (filt.norm & !is.null(loc.count$alt.frac.n)){
-            loc.count = loc.count[which(loc.count$alt.frac.n != 1 & loc.count$alt.frac.n != 0)]
-        }
-              
-        nhets = nhets + length(loc.count)
-        if (length(loc.count)>0){
-
-            df = as.data.frame(loc.count)
-            ## remove any entries with 0 ref or alt reads in tumor or normal
-            if (na.rm){
-                if (!is.null(norm.bam)){
-                    naix = apply(df[, c('alt.count.t', 'ref.count.t', 'alt.count.n', 'ref.count.n')], 1, function(x) all(is.na(x)))
-                }
-                else{
-                    naix = apply(df[, c('alt.count.t', 'ref.count.t')], 1, function(x) all(is.na(x)))
-                }
-                df = df[which(!naix), ]
-            }
-
-            out.cols = intersect(out.cols, names(df))
-
-            if (first){
-                write.tab(df[, out.cols], out.file, append = F, col.names = T)
-                first = F
-            }
-            else{
-                write.tab(df[, out.cols], out.file, append = T, col.names = F)
-            }                     
-              
-            if (verbose){
-                cat(sprintf('Processed %s sites, wrote %s candidate hets\n', nprocessed, nhets))
-            }
-
-            if (verbose){
-                cat('Time elapsed:\n')
-                print(Sys.time() - st)
-            }              
-        }
-    }
-      
-    close(f)
-     
-    if (verbose){
-        cat('Finished het processing wrote to file', out.file, '\n')
-    }
-}
 
 
 

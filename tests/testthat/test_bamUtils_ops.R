@@ -23,10 +23,12 @@ small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 ## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
 
-tumor_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-tumor_bai = 'smallHCC1143BL.bam.bai' 
+tumor_bam = 'HCC1143.final.subset.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+tumor_bai = 'HCC1143.final.subset.bam.bai' 
 
 small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
+
+somatic_vcf = 'subset.HCC1143.somatic.vcf'
 
 
 test_that('read.bam', {
@@ -182,6 +184,7 @@ test_that('bam.cov.tile', {
 ## })
 
 
+
 ## get.mate.gr()
 test_that('get.mate.gr', {
 
@@ -220,7 +223,10 @@ test_that('count.clips', {
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$right.clips[2], 0)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$left.clips[1], 2)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$left.clips[2], 0)
+    ## check 'if (length(reads) == 0)'
+    expect_equal(length(count.clips(GRanges())), 0)
 })
+
 
 
 ## varbase
@@ -287,6 +293,10 @@ test_that('splice.cigar', {
     expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')), use.D = FALSE)[[1]])))  ## should be a 'riid' column in GRanges
     expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')), use.D = FALSE)[[2]])))
     ## tests for 'rem.soft' and 'get.seq'
+    ## check 'if (nreads==0){'
+    expect_true(is(splice.cigar(GRanges()), 'GRangesList'))
+    expect_equal(length(splice.cigar(GRanges())), 0)
+
 })
 
 
@@ -447,14 +457,9 @@ test_that('varcount', {
 
 
 ### mafcount
+## test_that('mafcount', {
 
-
-
-### hets
-
-
-
-
+## })
 
 
 
