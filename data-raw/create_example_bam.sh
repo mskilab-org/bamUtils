@@ -41,6 +41,26 @@ samtools view -Sb  smallHCC1143BL.filtered.MD.sam >  smallHCC1143BL.filtered.MD.
 samtools index smallHCC1143BL.filtered.MD.bam
 
 
+## create tumor/normal pairs with FASTA and VCF
+
+samtools faidx human_g1k_v37_decoy.fasta
+
+samtools faidx human_g1k_v37_decoy.fasta chr1 > your_subset_file.fa
+
+cat chr1_human_g1k_v37_decoy.fasta | head -n 200000 > chr1_human_g1k_v37_decoy.subset.fasta
+
+samtools faidx  chr1_human_g1k_v37_decoy.subset.fasta
+
+
+### we have a small version of HCC1143BL
+## now get HCC1143
+
+samtools view -H HCC1143.final.bam  > HCC1143.header.sam
+samtools view HCC1143.final.bam  | head -n 10000 | cat  HCC1143.header.sam - | samtools view -Sb - > HCC1143.final.subset.bam 
+
+samtools index HCC1143.final.subset.bam 
+
+
 
 
 

@@ -10,17 +10,17 @@ splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
 \arguments{
 \item{reads}{GenomicRanges or GappedAlignments or data.frame input reads}
 
-\item{verbose}{boolean verbose flag (default == TRUE)}
+\item{verbose}{boolean verbose flag (default = TRUE)}
 
-\item{fast}{boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default == TRUE)}
+\item{fast}{boolean Flag to use 'GenomicAlignments::cigarRangesAlongReferenceSpace()' to translate CIGAR to GRanges (default = TRUE)}
 
-\item{use.D}{boolean Treats "D" tags as deletions, along with "N" tags (default == TRUE)}
+\item{use.D}{boolean Treats "D" tags as deletions, along with "N" tags (default = TRUE)}
 
-\item{rem.soft}{boolean Pick up splice 'S', soft-clipped (default == TRUE)}
+\item{rem.soft}{boolean Pick up splice 'S', soft-clipped (default = TRUE)}
 
-\item{get.seq}{boolean Get InDels (default == TRUE)}
+\item{get.seq}{boolean Get InDels (default = TRUE)}
 
-\item{return.grl}{boolean Return as GRangesList (default == TRUE)}
+\item{return.grl}{boolean Return as GRangesList (default = TRUE)}
 }
 \description{
 Takes GRanges or GappedAlignments object "reads" and parses cigar fields

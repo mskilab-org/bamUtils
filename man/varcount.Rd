@@ -12,15 +12,15 @@ varcount(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500,
 
 \item{gr}{GRanges of (width=1) sites i.e. intervals at which to compute base coujnts}
 
-\item{min.mapq}{integer Minimal mapping quality at which to compute bases}
+\item{min.mapq}{integer Minimal mapping quality at which to compute bases (default = 0)}
 
-\item{max.depth}{integer Maximum read depth to consider}
+\item{min.baseq}{integer Minimal base quality at which to compute bases (default = 20)}
 
-\item{indel}{boolean Flag whether to consider indels (default FALSE)}
+\item{max.depth}{integer Maximum read depth to consider (default = 500)}
 
-\item{...}{other args be passed to read.bam()}
+\item{indel}{boolean Flag whether to consider indels (default = FALSE)}
 
-\item{max.baseq}{integer Minimal base qualitya t which to compute bases}
+\item{...}{other args be passed to read.bam(). Please see documentation for read.bam()}
 }
 \value{
 GRanges annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n

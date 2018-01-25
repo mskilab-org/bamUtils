@@ -1,6 +1,6 @@
 
 library(bamUtils)
-
+library(testthat)
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 
@@ -23,6 +23,10 @@ small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 ## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
 
+tumor_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+tumor_bai = 'smallHCC1143BL.bam.bai' 
+
+small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
 
 
 test_that('read.bam', {
@@ -173,6 +177,9 @@ test_that('bam.cov.tile', {
 
 ## oneoffs()
 
+## test_that('oneoffs', {
+##
+## })
 
 
 ## get.mate.gr()
@@ -188,14 +195,16 @@ test_that('get.mate.gr', {
 })
 
 
+
 ## get.pairs.grl
 test_that('get.pairs.grl', {
 
     expect_error(get.pairs.grl(read.bam(example_bam, all=TRUE))) ## Error in (function (classes, fdef, mtable)  :  unable to find an inherited method for function ‘granges’ for signature ‘"GRangesList"’
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'), TRUE)
     ## pairs.grl.split
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], pairs.grl.split=FALSE), 'GRanges'), TRUE)
     ## verbose 
-    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE, verbose=TRUE)[[1]]), 'GRangesList'))
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'))
 
 })
 
@@ -374,6 +383,25 @@ test_that('is.paired.end', {
     expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
 
 })
+
+chunk = function(from, to = NULL, by = 1, length.out = NULL)
+{
+    if (is.null(to)){
+        to = from;
+        from = 1;
+    }
+
+    if (is.null(length.out)){
+        tmp = c(seq(from = from, to = to, by = by), to + 1)
+    }
+    else{
+        tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
+    }
+
+    out = floor(cbind(tmp[-length(tmp)], tmp[-1]-1))
+
+    return(out)
+}
 
 
 test_that('chunk', {

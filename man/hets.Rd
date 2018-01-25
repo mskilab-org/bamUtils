@@ -6,7 +6,7 @@
 \usage{
 hets(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1000,
   chunk.size2 = 100, mc.cores = 1, verbose = TRUE, na.rm = TRUE,
-  filt.norm = T)
+  filt.norm = TRUE)
 }
 \arguments{
 \item{tum.bam}{string path to tumor sample, input to Bamfile()}

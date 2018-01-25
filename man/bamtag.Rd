@@ -9,9 +9,9 @@ bamtag(reads, secondary = FALSE, gr.string = FALSE)
 \arguments{
 \item{reads}{GenomicRanges or GappedAlignments or data.frame holding the reads}
 
-\item{secondary}{boolean including secondary alignment(s) (default == FALSE)}
+\item{secondary}{boolean including secondary alignment(s) (default = FALSE)}
 
-\item{gr.string}{boolean input reads into gr.string() (default == FALSE)}
+\item{gr.string}{boolean input reads into gr.string() (default = FALSE)}
 }
 \description{
 Outputs a tag that cats 'qname', first vs first second mate +/- secondary alignment +/- gr.string
