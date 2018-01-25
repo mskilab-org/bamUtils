@@ -11,6 +11,8 @@ Depends:
     GenomicAlignments, 
     Rsamtools (>= 1.18),
     gUtils
+Imports:
+    abind
 Suggests:
     testthat
 License: GPL-2
