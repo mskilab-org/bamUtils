@@ -110,41 +110,41 @@ test_that('read.bam', {
 
 
 ### bam.cov.gr
-test_that('bam.cov.gr', {
-
-    expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
-    ## intervals
-    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))), 26)
-    expect_match(as.character(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$file), 'smallHCC1143BL.bam')
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$records), 1065)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$nucleotides), 107565)
+##test_that('bam.cov.gr', {
+##
+##    expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
+##    ## intervals
+##    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))), 26)
+##    expect_match(as.character(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$file), 'smallHCC1143BL.bam')
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$records), 1065)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$nucleotides), 107565)
     ## all
     ## verbose
-    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
+##    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
     ## isPaired 
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
     ## isProperPair
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$records), 77)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$nucleotides), 7777)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$records), 77)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$nucleotides), 7777)
     ## isUnmappedQuery 
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$records), 0)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$nucleotides), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$records), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$nucleotides), 0)
     ## hasUnmappedMate 
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$records), 0)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$nucleotides), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$records), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$nucleotides), 0)
     ## isNotPassingQualityControls turned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)$records), 0)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls= TRUE)$nucleotides), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)$records), 0)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls= TRUE)$nucleotides), 0)
     ## isDuplicate 
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$records), 98)
-    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$nucleotides), 9898)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$records), 98)
+##    expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$nucleotides), 9898)
     ## mc.cores 
-    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
+##    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
     ## chunksize 
-    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
+##    expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
 
-})
+##})
 
 
 
@@ -386,13 +386,13 @@ test_that('countCigar', {
 
 
 
-test_that('is.paired.end', {
-
-    expect_true(as.logical(is.paired.end(example_bam)))
-    expect_true(as.logical(is.paired.end(small_MD_bam)))
-    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
-
-})
+## test_that('is.paired.end', {
+## 
+##    expect_true(as.logical(is.paired.end(example_bam)))
+##    expect_true(as.logical(is.paired.end(small_MD_bam)))
+##    expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
+##
+## })
 
 chunk = function(from, to = NULL, by = 1, length.out = NULL)
 {
