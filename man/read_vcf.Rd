@@ -14,7 +14,7 @@ read_vcf(fn, gr = NULL, hg = "hg19", geno = NULL, swap.header = NULL,
 
 \item{hg}{string Human reference genome (default = 'hg19')}
 
-\item{geno}{(default = NULL)}
+\item{geno}{(default = NULL)  ### 'geno()' method from 'VCF-class'; ‘geno(x, withDimnames=TRUE)’, ‘geno(x) <- value’: Gets a SimpleList of genotype data.  ‘value’ is a SimpleList.}
 
 \item{swap.header}{(default = NULL)}
 
