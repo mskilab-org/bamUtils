@@ -1716,10 +1716,15 @@ read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL,
 #'
 #' and adding all other fields to INFO
 #'
+#' @param vars info info 
+#' @param filename string Path to output VCF
+#' @param sname string Sample name (defautl = 'mysample')
+#' @param info.fields info info
 #' @author Marcin Imielinski
 #' @export
-write_vcf = function(vars, filename, sname = "mysample", info.fields = setdiff(names(values(vars)), c("FILTER", "GT", "REF", "ALT")))
+write_vcf = function(vars, filename, sname = 'mysample', info.fields = setdiff(names(values(vars)), c("FILTER", "GT", "REF", "ALT")))
 {
+    require(VariantAnnotation)
     genoh = DataFrame(row.names = 'GT', Number = 1, Type = 'Float', Description = 'Genotypes')
 
     for (field in names(values(vars))) ## clean up vars of weird S4 data structures that are not compatible with before
@@ -1738,7 +1743,8 @@ write_vcf = function(vars, filename, sname = "mysample", info.fields = setdiff(n
 
     info.fields = intersect(info.fields, names(values(vars)))
 
-    if (length(info.fields)==0) # dummy field to keep asVCF happy
+    # dummy field to keep asVCF happy
+    if (length(info.fields)==0) 
     {
         info.fields = "DM"
         vars$DM = '.'
@@ -1750,35 +1756,43 @@ write_vcf = function(vars, filename, sname = "mysample", info.fields = setdiff(n
         Type = ifelse(is.num, 'Float', 'String'),
         Description = paste('Field', info.fields))
 
-    if (is.null(vars$REF))
+    if (is.null(vars$REF)){
         vars$REF = vars$refbase
+    }
 
-    if (is.null(vars$ALT))
+    if (is.null(vars$ALT)){
         vars$ALT = vars$altbase
+    }
 
-    if (is.null(vars$REF))
-        vars$REF =  "N"
+    if (is.null(vars$REF)){
+        vars$REF =  'N'
+    }
 
-    if (is.null(vars$ALT))
-        vars$ALT =  "X"
+    if (is.null(vars$ALT)){
+        vars$ALT =  'X'
+    }
 
-    if (is.null(vars$FILTER))
-        vars$FILTER =  "PASS"
+    if (is.null(vars$FILTER)){
+        vars$FILTER =  'PASS'
+    }
 
 
     vcf = asVCF(VRanges(seqnames(vars), ranges(vars), ref = vars$REF, alt = vars$ALT, sampleNames = rep(sname, length(vars))))
 
-    for (field in info.fields)
+    for (field in info.fields){
         info(vcf)[[field]] = values(vars)[[field]]
+    }
 
-#    geno(vcf)$DP = vars$DP; geno(vcf)$AD = vars$AD; geno(vcf)$FT = vars$FT
+
 
     info(header(vcf)) = infoh
 
-    if (is.null(vars$FILTER))
+    if (is.null(vars$FILTER)){
         filt(vcf) = rep('PASS', length(vars))
-    else
+    }
+    else{
         filt(vcf) = vars$FILTER
+    }
 
     rownames(vcf) = vars$assembly.coord
     geno(header(vcf)) = genoh

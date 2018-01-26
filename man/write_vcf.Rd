@@ -7,6 +7,15 @@
 write_vcf(vars, filename, sname = "mysample",
   info.fields = setdiff(names(values(vars)), c("FILTER", "GT", "REF", "ALT")))
 }
+\arguments{
+\item{vars}{info info}
+
+\item{filename}{string Path to output VCF}
+
+\item{sname}{string Sample name (defautl = 'mysample')}
+
+\item{info.fields}{info info}
+}
 \description{
 writes any GRanges vars into vcf using columns of vars to guide choice of common fields like
 $FILTER

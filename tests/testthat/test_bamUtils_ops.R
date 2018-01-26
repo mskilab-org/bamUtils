@@ -446,13 +446,18 @@ test_that('read_vcf', {
     expect_error(read_vcf('foobar'))
     ## default 
     expect_equal(length(read_vcf(somatic_vcf)), 60)
+    expect_equal(length(seqnames(seqinfo(read_vcf(somatic_vcf)))), 84)
     ## gr  gr= GRanges('1:10075-10100')
     ## hg
     expect_match(unique(as.data.frame(seqinfo(read_vcf(somatic_vcf, hg='hg12345')))$genome), 'hg12345')
     ## geno
     ## swap.header
+    expect_equal(length(seqnames(seqinfo(read_vcf(somatic_vcf, swap.header='/Users/ebiederstedt/bamUtils/tests/testthat/new_header.vcf')))), 2)
     ## verbose
     expect_equal(length(read_vcf(somatic_vcf, verbose=TRUE)), 60)
+    ## check 'if (!file.exists(swap.header))'
+    expect_error(read_vcf(somatic_vcf, swap.header='foobar'))
+
 
 })
 
@@ -461,6 +466,7 @@ test_that('read_vcf', {
 test_that('write_vcf', {
 
     expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
+    ## 
 
 })
 
