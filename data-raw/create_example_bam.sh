@@ -66,7 +66,24 @@ samtools index HCC1143.final.subset.bam
 
 ### VCF
 
+## module load vcftools/0.1.14
+## vcf-validator HCC1143_nygc.snowman.somatic.sv.vcf   ## buggy
+
+## use this
 grep -E '^(#|1[[:space:]])' HCC1143_nygc.snowman.somatic.sv.vcf  > chrom1.vcf 
+
+## vcf-validator chrom1.vcf    ## obviously still buggy
+
+##module load  htslib/1.5
+##module load  bcftools/1.4.1 
+
+## htslib commands
+##bgzip -c HCC1143_nygc.snowman.somatic.sv.vcf  > HCC1143_nygc.snowman.somatic.sv.vcf.gz
+##tabix -p vcf HCC1143_nygc.snowman.somatic.sv.vcf.gz
+
+##bcftools filter  HCC1143_nygc.snowman.somatic.sv.vcf.gz -r 1
+
+## [E::vcf_parse_format] Invalid character '.' in 'PL' FORMAT field at 1:6525379
 
 ## /gpfs/commons/groups/imielinski_lab/projects/CellLines/Flow/Snowman/HCC1143_nygc/HCC1143_nygc.snowman.somatic.sv.vcf
 

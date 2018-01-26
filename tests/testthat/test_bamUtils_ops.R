@@ -28,7 +28,7 @@ tumor_bai = 'HCC1143.final.subset.bam.bai'
 
 small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
 
-somatic_vcf = 'subset.HCC1143.somatic.vcf'
+somatic_vcf = 'chrom1.vcf'
 
 
 test_that('read.bam', {
@@ -396,27 +396,6 @@ test_that('is.paired.end', {
 
 
 
-chunk = function(from, to = NULL, by = 1, length.out = NULL)
-{
-    if (is.null(to)){
-        to = from;
-        from = 1;
-    }
-
-    if (is.null(length.out)){
-        tmp = c(seq(from = from, to = to, by = by), to + 1)
-    }
-    else{
-        tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
-    }
-
-    out = floor(cbind(tmp[-length(tmp)], tmp[-1]-1))
-
-    return(out)
-}
-
-
-
 
 test_that('chunk', {
 
@@ -460,10 +439,37 @@ test_that('varcount', {
 
 
 
+## read_vcf()
+## read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL, verbose = FALSE, add.path = FALSE, tmp.dir = '~/temp/.tmpvcf', ...)
+test_that('read_vcf', {
+    ## error
+    expect_error(read_vcf('foobar'))
+    ## default 
+    expect_equal(length(read_vcf(somatic_vcf)), 60)
+    ## gr  gr= GRanges('1:10075-10100')
+    ## hg
+    expect_match(unique(as.data.frame(seqinfo(read_vcf(somatic_vcf, hg='hg12345')))$genome), 'hg12345')
+    ## geno
+    ## swap.header
+    ## verbose
+    expect_equal(length(read_vcf(somatic_vcf, verbose=TRUE)), 60)
+
+})
+
+
+
+test_that('write_vcf', {
+
+    expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
+
+})
+
+
 ### mafcount
 ## test_that('mafcount', {
 
 ## })
+
 
 
 

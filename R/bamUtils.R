@@ -1423,6 +1423,7 @@ is.paired.end = function(bams)
 #' @param by integer Interval to space sequence (default = 1)
 #' @param length.out integer Number of desired chunks, i.e. nrows of output matrix (default = NULL)
 #' @return 2-column matrix of indices, each row representing a chunk
+#' @export
 #' @author Marcin Imielinski
 chunk = function(from, to = NULL, by = 1, length.out = NULL)
 {
@@ -1585,8 +1586,8 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 #' @param fn info 
 #' @param gr GRanges 
 #' @param hg string Human reference genome (default = 'hg19')
-#' @param geno (default = NULL)
-#' @param swap.header (default = NULL)
+#' @param geno (default = NULL)  ### 'geno()' method from 'VCF-class'; ‘geno(x, withDimnames=TRUE)’, ‘geno(x) <- value’: Gets a SimpleList of genotype data.  ‘value’ is a SimpleList.
+#' @param swap.header (default = NULL)   
 #' @param verbose boolean Flag (default = FALSE)
 #' @param add.path boolean Flag (default = FALSE)
 #' @param tmp.dir string Path (defautl = '~/temp/.tmpvcf')
@@ -1697,6 +1698,97 @@ read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL,
 
     return(out)
 }
+
+
+
+
+
+#' @name write_vcf
+#' @title write_vcf
+#'
+#' @description
+#'
+#' writes any GRanges vars into vcf using columns of vars to guide choice of common fields like
+#' $FILTER
+#' $GT
+#' $REF
+#' $ALT
+#'
+#' and adding all other fields to INFO
+#'
+#' @author Marcin Imielinski
+#' @export
+write_vcf = function(vars, filename, sname = "mysample", info.fields = setdiff(names(values(vars)), c("FILTER", "GT", "REF", "ALT")))
+{
+    genoh = DataFrame(row.names = 'GT', Number = 1, Type = 'Float', Description = 'Genotypes')
+
+    for (field in names(values(vars))) ## clean up vars of weird S4 data structures that are not compatible with before
+    {
+        tmp = tryCatch(as.character(values(vars)[, field]), error = function(e) NULL)
+        if (is.null(tmp))
+        {
+            values(vars)[, field] = NULL
+            warning(paste('Could not process field', field, "due to S4 conversion issues, discarding"))
+        }
+        is.num = !all(is.na(as.numeric(tmp)))
+        if (!is.num)
+            values(vars)[, field] = tmp
+    }
+
+
+    info.fields = intersect(info.fields, names(values(vars)))
+
+    if (length(info.fields)==0) # dummy field to keep asVCF happy
+    {
+        info.fields = "DM"
+        vars$DM = '.'
+    }
+
+    is.num = sapply(info.fields, function(x) !suppressWarnings(all(is.na(as.numeric(as.character(values(vars)[, x]))))))
+    infoh = DataFrame(
+        row.names = info.fields, Number = 1,
+        Type = ifelse(is.num, 'Float', 'String'),
+        Description = paste('Field', info.fields))
+
+    if (is.null(vars$REF))
+        vars$REF = vars$refbase
+
+    if (is.null(vars$ALT))
+        vars$ALT = vars$altbase
+
+    if (is.null(vars$REF))
+        vars$REF =  "N"
+
+    if (is.null(vars$ALT))
+        vars$ALT =  "X"
+
+    if (is.null(vars$FILTER))
+        vars$FILTER =  "PASS"
+
+
+    vcf = asVCF(VRanges(seqnames(vars), ranges(vars), ref = vars$REF, alt = vars$ALT, sampleNames = rep(sname, length(vars))))
+
+    for (field in info.fields)
+        info(vcf)[[field]] = values(vars)[[field]]
+
+#    geno(vcf)$DP = vars$DP; geno(vcf)$AD = vars$AD; geno(vcf)$FT = vars$FT
+
+    info(header(vcf)) = infoh
+
+    if (is.null(vars$FILTER))
+        filt(vcf) = rep('PASS', length(vars))
+    else
+        filt(vcf) = vars$FILTER
+
+    rownames(vcf) = vars$assembly.coord
+    geno(header(vcf)) = genoh
+
+    geno(vcf)$GT = vcf$GT
+
+    writeVcf(vcf, filename)
+}
+
+
 
 
 
