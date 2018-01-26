@@ -14,15 +14,11 @@ before_install:
   - pwd
 install:
   ## install samtools
-  - echo 'here';
-  - pwd 
   - wget https://github.com/samtools/samtools/releases/download/1.6/samtools-1.6.tar.bz2
   - tar -vxjf samtools-1.6.tar.bz2
   - cd samtools-1.6
   - make
-  - sudo make install; cd 
-  - echo 'where now';
-  - pwd
+  - sudo make install; cd /home/travis/build/mskilab/bamUtils
   - ./travis-tool.sh install_bioc_deps
   - ./travis-tool.sh install_deps
   - ./travis-tool.sh install_github r-lib/testthat
