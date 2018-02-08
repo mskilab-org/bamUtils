@@ -98,7 +98,7 @@ grep -E '^(#|1[[:space:]])' HCC1143_nygc.snowman.somatic.sv.vcf  > chrom1.vcf
 
 
 
-
+## perl vcf2maf.pl --input-vcf /gpfs/commons/home/biederstedte-934/tmp_BAM_bamUtils/HCC1143_nygc.snowman.somatic.sv.vcf --output-maf  /gpfs/commons/home/biederstedte-934/tmp_BAM_bamUtils/HCC1143_nygc.snowman.somatic.sv.maf  
 
 
 

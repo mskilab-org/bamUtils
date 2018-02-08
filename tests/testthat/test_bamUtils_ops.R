@@ -59,7 +59,7 @@ test_that('read.bam', {
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), what='qwidth')
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='MD')  ## error, https://www.rdocumentation.org/packages/Rsamtools/versions/1.24.0/topics/BamInput
     ## verbose
-    ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), verbose=TRUE))
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027) 
     ## check 'tag' works correctly
     expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE))))
     expect_error(('nonsense_tag' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'nonsense_tag', as.data.table=TRUE))))

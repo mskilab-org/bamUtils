@@ -51,9 +51,9 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     isNotPassingQualityControls = NA,
                     isDuplicate = FALSE,
                     isValidVendorRead = TRUE,
-                    pairs.grl.split=TRUE,  ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
-                    as.data.table=FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
-                    ignore.indels=FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
+                    pairs.grl.split = TRUE,  ## return pairs as grl, rather than GRanges .. controls whether get.pairs.grl does split (t/c rename to pairs.grl.split)
+                    as.data.table = FALSE, ## returns reads in the form of a data table rather than GRanges/GRangesList
+                    ignore.indels = FALSE, ## messes with cigar to read BAM with indels removed. Useful for breakpoint mapping on contigs
                     size.limit = 1e6,
                     ... ## passed to scanBamFlag (
                     )
@@ -1495,8 +1495,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
             stop('Error: one or more BAM file indices missing')
         }
         bams = BamFileList(mapply(function(bam, bai) BamFile(bam, index = bai), bams, bami, SIMPLIFY = FALSE))
-    }
-    else if (is(bams, 'BamFile')){
+    }else if (is(bams, 'BamFile')){
         bams = BamFileList(bams)
     }
 
@@ -1533,14 +1532,11 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
     if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
         bam.paths = Rsamtools::path(bams)
-    }
-    else if (is(bams, 'BamFileList')){
+    }else if (is(bams, 'BamFileList')){
         bam.paths = sapply(bams, path)
-    }
-    else if (is(bams, 'list')){
+    }else if (is(bams, 'list')){
         bam.paths = sapply(bams, path)
-    }
-    else if (is(bams, 'character')){
+    }else if (is(bams, 'character')){
         bam.paths = bams
     }
 
@@ -1554,8 +1550,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
                 x$seq[cnames,,, drop = F]
             })), c(1,3,2))
         }
-    }
-    else{
+    }else{
         cnames = unique(unlist(lapply(pu, function(x) rownames(x$seq))))
         cnames = cnames[order(nchar(cnames), cnames)]
         out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
@@ -1576,6 +1571,8 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
 
 
+
+
 #' @name read_vcf
 #' @title parses VCF into GRanges or data.table
 #'
@@ -1583,15 +1580,15 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 #'
 #' Wrapper around Bioconductor VariantAnnotation. Reads VCF into GRanges or data.table format
 #'
-#' @param fn info 
-#' @param gr GRanges 
+#' @param fn argument to parse via bcftools
+#' @param gr GRanges input GRanges (default = NULL)
 #' @param hg string Human reference genome (default = 'hg19')
-#' @param geno (default = NULL)  ### 'geno()' method from 'VCF-class'; ‘geno(x, withDimnames=TRUE)’, ‘geno(x) <- value’: Gets a SimpleList of genotype data.  ‘value’ is a SimpleList.
-#' @param swap.header (default = NULL)   
+#' @param geno boolean Flag whether to pull the genotype information information in the GENO vcf fields (default = NULL)  
+#' @param swap.header string Pathn to another VCF file (in case of VCF with malformed header)(default = NULL)   
 #' @param verbose boolean Flag (default = FALSE)
-#' @param add.path boolean Flag (default = FALSE)
-#' @param tmp.dir string Path (defautl = '~/temp/.tmpvcf')
-#' @param ...
+#' @param add.path boolean Flag to add the path of the current VCF file to the output (default = FALSE)
+#' @param tmp.dir string Path to directory for temporary files (default = '~/temp/.tmpvcf')
+#' @param ... extra parameters
 #' @author Marcin Imielinski
 #' @export
 read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL, verbose = FALSE, add.path = FALSE, tmp.dir = '~/temp/.tmpvcf', ...)
@@ -1898,7 +1895,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
     }
 
     if (is.data.frame(maf)){
-        maf = seg2gr(maf)
+        maf = seg2gr(maf)   ## maf now a GRanges
     }
 
     tmp = do.call('rbind', mclapply(1:nrow(chunks), function(i){
@@ -1913,10 +1910,10 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             now = Sys.time()
         }
                
-        vc = varcount(bams, maf[ix], ...)
+        vc = varcount(bams, maf[ix])
 
         if (exists("bams2")){
-            vc2 = varcount(bams2, maf[ix], ...)
+            vc2 = varcount(bams2, maf[ix])
             ## vc$counts = abind(vc$count, vc2$count, along=3)
         }
                
@@ -1924,7 +1921,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             print(Sys.time() - now)
         }
                
-        tum.count = vc$counts[, , 1]
+        tum.count = vc$counts[,,1]
 
         if (exists("bams2")){
             norm.count = vc2$counts[,,1]
