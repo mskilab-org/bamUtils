@@ -177,12 +177,6 @@ test_that('bam.cov.tile', {
 
 
 
-## oneoffs()
-
-## test_that('oneoffs', {
-##
-## })
-
 
 
 ## get.mate.gr()

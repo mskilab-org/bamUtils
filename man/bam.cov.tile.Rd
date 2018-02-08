@@ -4,9 +4,10 @@
 \alias{bam.cov.tile}
 \title{Get coverage as GRanges from BAM on genome tiles across seqlengths of genome}
 \usage{
-bam.cov.tile(bam.file, window = 100, chunksize = 1e+05, min.mapq = 30,
-  verbose = TRUE, max.tlen = 10000, st.flag = "-f 0x02 -F 0x10",
-  fragments = TRUE, region = NULL, do.gc = FALSE, midpoint = TRUE)
+bam.cov.tile(bam.file, bai = NULL, window = 100, chunksize = 1e+05,
+  min.mapq = 30, verbose = TRUE, max.tlen = 10000,
+  st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE,
+  midpoint = TRUE)
 }
 \arguments{
 \item{bam.file}{string Input BAM file}
@@ -25,11 +26,11 @@ bam.cov.tile(bam.file, window = 100, chunksize = 1e+05, min.mapq = 30,
 
 \item{fragments}{boolean Flag (default = FALSE)}
 
-\item{region}{um? (default = NULL)}
-
 \item{do.gc}{boolean Flag to execute garbage collection via 'gc()' (default = FALSE)}
 
 \item{midpoint}{boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment (default = TRUE)}
+
+\item{region}{um? (default = NULL)}
 }
 \value{
 GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)

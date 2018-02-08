@@ -380,8 +380,8 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
 #' @export
-bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
-                        st.flag = "-f 0x02 -F 0x10", fragments = TRUE, region = NULL, do.gc = FALSE, midpoint = TRUE)
+bam.cov.tile = function(bam.file, bai = NULL, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
+                        st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE)
 {
     cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
@@ -390,31 +390,8 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     counts = lapply(sl, function(x) rep(0, ceiling(x/window)))
     numwin = sum(sapply(sl, function(x) ceiling(x/window)))
 
-    if (!is.null(region))
-    {
-        cat(sprintf('Limiting to region %s\n', region))
-        cmd = 'samtools view %s %s -q %s %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-        if (!file.exists(paste(bam.file, '.bam', sep = '')))
-        {
-            if (file.exists(bai.file <- gsub('.bam$', '.bai', bam.file)))
-            {
-                .TMP.DIR = '~/temp/.samtools'
-                system(paste('mkdir -p', TMP.DIR))
-                tstamp = gsub("[\\:\\-]", "", gsub("\\s", "_", Sys.time()))
-                tmp.fn = paste(normalizePath(TMP.DIR), '/tmp', tstamp, sep = '')
-                system(sprintf('ln -s %s %s.bam', bam.file, tmp.fn))
-                system(sprintf('ln -s %s %s.bam.bai', bai.file, tmp.fn))
-            }
-
-        }
-        cat('Calling', sprintf(cmd, st.flag, paste(tmp.fn, 'bam', sep = '.'), min.mapq, region), '\n')
-        p = pipe(sprintf(cmd, st.flag, paste(tmp.fn, 'bam', sep = '.'), min.mapq, region), open = 'r')
-    }
-    else
-    {
-        cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
-        p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
-    }
+    cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
+    p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
 
     i = 0
     sl.dt = data.table(chr = names(sl), len = sl)
@@ -488,9 +465,6 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     }
     close(p)
 
-    if (!is.null(region)){
-        system(sprintf('rm %s.bam %s.bam.bai', tmp.fn, tmp.fn))
-    }
 
     return(gr)
 }
