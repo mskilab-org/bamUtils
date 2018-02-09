@@ -30,6 +30,12 @@ small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
 
 somatic_vcf = 'chrom1.vcf'
 
+normalbam = 'smallA4AD_BL.bam'
+tumorbam = 'smallA4AD_tum.bam'
+
+mafpath = 'snv.annotated.A4AD.maf'
+
+
 
 test_that('read.bam', {
     
@@ -290,6 +296,8 @@ test_that('splice.cigar', {
     ## check 'if (nreads==0){'
     expect_true(is(splice.cigar(GRanges()), 'GRangesList'))
     expect_equal(length(splice.cigar(GRanges())), 0)
+    ## is.data.frame()
+    ## expect_equal(length(splice.cigar(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]) )), 2054) 
 
 })
 
@@ -464,14 +472,12 @@ test_that('write_vcf', {
 })
 
 
-### mafcount
-## test_that('mafcount', {
 
-## })
+test_that('mafcount', {
+    
+    expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103) 
 
-
-
-
+})
 
 
 

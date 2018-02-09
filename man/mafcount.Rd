@@ -12,7 +12,7 @@ mafcount(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE,
 
 \item{norm.bam}{optional string path to normal sample, input to Bamfile() (optional) (default = NULL)}
 
-\item{maf}{GRanges or data.frame or data.table of imported MAF (e.g. output of read.delim or fread)}
+\item{maf}{GRanges of imported MAF (e.g. output of read.delim or dt2gr(fread(MAF)))}
 
 \item{chunk.size}{integer Number of variants to extract from bam file at each iteration (default = 100)}
 
@@ -26,7 +26,7 @@ mafcount(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE,
 GRanges of MAF annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
 }
 \description{
-Returns base counts for reference and alternative allele for an input tum and norm bam and maf data frame or GRAnges specifying substitutions
+Returns base counts for reference and alternative allele for an input tumor (and normal bam) and import MAF as a GRanges specifying substitutions
 
 maf is a single width GRanges describing variants and field 'ref' (or 'Reference_Allele'), 'alt' (or 'Tum_Seq_Allele1') specifying reference and alt allele.
 maf is assumed to have width 1 and strand is ignored.

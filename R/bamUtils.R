@@ -1056,8 +1056,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         was.grl = TRUE
         r.id = as.data.frame(reads)$element
         reads = unlist(reads)
-    }
-    else{
+    }else{
         r.id = 1:length(reads)
         was.grl = FALSE
     }
@@ -1071,12 +1070,10 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 
         if (!is.null(reads$MD)){
             md = as.character(reads$MD)
-        }
-        else{
+        }else{
             md = rep(NA, length(cigar))
         }
-    }
-    else{
+    }else{
         sl = seqlengths(reads)
         sn =  seqnames(reads)
         cigar = as.character(values(reads)$cigar)
@@ -1085,8 +1082,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 
         if (!is.null(values(reads)$MD)){
             md = as.character(values(reads)$MD)
-        }
-        else{
+        }else{
             md = rep(NA, length(cigar))
         }
     }
@@ -1105,8 +1101,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     if (length(ix)==0){
         if (return.grl){
             return(rep(GRangesList(GRanges()), nreads))
-        }
-        else{
+        }else{
             return(GRanges())
         }       
     }
@@ -1127,12 +1122,10 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             tmp.grl = split(out.gr, out.gr$fid)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
-        }
-        else{
+        }else{
             return(out.gr)
         }
-    }
-    else{
+    }else{
 
         cigar = cigar[ix]
         str = str[ix]
@@ -1140,8 +1133,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         if (is.data.frame(reads)){
             r.start = reads$start[ix]
             r.end = reads$end[ix]
-        }
-        else{
+        }else{
             r.start = start(reads)[ix]
             r.end = end(reads)[ix];
         }
@@ -1217,8 +1209,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
                     function(i){
                         if (ends.seq[i]<starts.seq[i]){
                             return('') ## deletion
-                            }
-                        else{
+                            }else{
                             seq[[iix[i]]][starts.seq[i]:ends.seq[i]] ## insertion
                         }
                     })
@@ -1242,8 +1233,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             tmp.grl = split(out.gr, out.iix)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
-        }
-        else{
+        }else{
             return(out.gr)
         }
     }
@@ -1782,14 +1772,14 @@ write_vcf = function(vars, filename, sname = 'mysample', info.fields = setdiff(n
 #' @title Wrapper around varcount adapted to tumor and normal "paired" bams
 #' @description 
 #'
-#' Returns base counts for reference and alternative allele for an input tum and norm bam and maf data frame or GRAnges specifying substitutions
+#' Returns base counts for reference and alternative allele for an input tumor (and normal bam) and import MAF as a GRanges specifying substitutions
 #'
 #' maf is a single width GRanges describing variants and field 'ref' (or 'Reference_Allele'), 'alt' (or 'Tum_Seq_Allele1') specifying reference and alt allele.
 #' maf is assumed to have width 1 and strand is ignored.  
 #'
 #' @param tum.bam string path to tumor sample, input to Bamfile()
 #' @param norm.bam optional string path to normal sample, input to Bamfile() (optional) (default = NULL)
-#' @param maf GRanges or data.frame or data.table of imported MAF (e.g. output of read.delim or fread)
+#' @param maf GRanges of imported MAF (e.g. output of read.delim or dt2gr(fread(MAF)))
 #' @param chunk.size integer Number of variants to extract from bam file at each iteration (default = 100)
 #' @param verbose logical Flag whether to print verbose output (default = TRUE)
 #' @param mc.cores integer Number of cores in mclapply (default = 1)
@@ -1816,12 +1806,12 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         ## prevent incompatible BAM headers
         if (identical(seqlengths(bams), seqlengths(norm.bam))){
             bams = c(bams, BamFileList(norm.bam))
-        }
-        else{
+        }else{
             bams2 = BamFileList(norm.bam)
         }
     }
     
+
     chunks = chunk(1, length(maf), chunk.size)
 
         
@@ -1937,23 +1927,21 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 
     }, mc.cores = mc.cores))
 
-    maf$alt.count.t = tmp[,1]
-    maf$ref.count.t = tmp[,2]
-    maf$alt.frac.t = maf$alt.count.t / (maf$alt.count.t + maf$ref.count.t)
-    maf$ref.frac.t = 1 - maf$alt.frac.t
+    ### write check if only NA's
+    if (all(is.na(tmp))){
+        return(Granges()) ### return empty GRanges
+    }else{
+        maf$alt.count.t = tmp[,1]
+        maf$ref.count.t = tmp[,2]
+        maf$alt.frac.t = maf$alt.count.t / (maf$alt.count.t + maf$ref.count.t)
+        maf$ref.frac.t = 1 - maf$alt.frac.t
 
-    if (!is.null(norm.bam)){
-        maf$alt.count.n = tmp[,3]
-        maf$ref.count.n = tmp[,4]
-        maf$alt.frac.n = maf$alt.count.n / (maf$alt.count.n + maf$ref.count.n)
-        maf$ref.frac.n = 1 - maf$alt.frac.n
+        if (!is.null(norm.bam)){
+            maf$alt.count.n = tmp[,3]
+            maf$ref.count.n = tmp[,4]
+            maf$alt.frac.n = maf$alt.count.n / (maf$alt.count.n + maf$ref.count.n)
+            maf$ref.frac.n = 1 - maf$alt.frac.n
+        }
+        return(maf)
     }
-
-    return(maf)
 }
-
-
-
-
-
-
