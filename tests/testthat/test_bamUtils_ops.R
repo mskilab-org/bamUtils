@@ -254,6 +254,11 @@ test_that('varbase', {
     expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$border, 'blue')    
     ## verbose
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]], verbose=FALSE)), 2)
+    ## if (inherits(reads, 'GRangesList')){
+    expect_equal(length(varbase(GRangesList(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))))[[2]]), 10)
+    ## else if (inherits(reads, 'data.frame')){
+    expect_equal(length(varbase(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))[[2]]))[[1]]), 5)
+    expect_equal(varbase(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))[[2]]))[[1]][2]$varbase, 'C')
 
 })
 
@@ -296,8 +301,10 @@ test_that('splice.cigar', {
     ## check 'if (nreads==0){'
     expect_true(is(splice.cigar(GRanges()), 'GRangesList'))
     expect_equal(length(splice.cigar(GRanges())), 0)
-    ## is.data.frame()
-    ## expect_equal(length(splice.cigar(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]) )), 2054) 
+    ##  if (inherits(reads, 'GRangesList')){
+    expect_equal(splice.cigar(GRangesList(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))))[[3]]$type, 'M')
+    ## if (is.data.frame(reads)){
+    ##   unable to find an inherited method for function ‘values’ for signature ‘"data.table"’
 
 })
 
@@ -464,12 +471,10 @@ test_that('varcount', {
 
 
 
-test_that('write_vcf', {
-
-    expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
+##test_that('write_vcf', {
+    ##expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
     ## 
-
-})
+##})
 
 
 
