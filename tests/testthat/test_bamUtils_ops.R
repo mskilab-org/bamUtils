@@ -35,6 +35,8 @@ tumorbam = 'smallA4AD_tum.bam'
 
 mafpath = 'snv.annotated.A4AD.maf'
 
+noindexbam = 'bam_noindex.bam'
+
 
 
 test_that('read.bam', {
@@ -118,7 +120,11 @@ test_that('read.bam', {
 ### bam.cov.gr
 test_that('bam.cov.gr', {
 
+    ## if (missing(bam) | missing(intervals)){
+    expect_error(bam.cov.gr())
     expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
+    ## if (!is.null(bai)){
+    expect_error(bam.cov.gr(noindexbam, intervals = GRanges('1:10075-10100')))
     ## intervals
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))), 26)
     expect_match(as.character(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$file), 'smallHCC1143BL.bam')
@@ -127,6 +133,9 @@ test_that('bam.cov.gr', {
     ## all
     ## verbose
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
+    ## count.all
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$records, 1372)
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$nucleotides, 138572)
     ## isPaired 
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
@@ -149,6 +158,7 @@ test_that('bam.cov.gr', {
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
     ## chunksize 
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
+    ## 
 
 })
 
@@ -178,6 +188,7 @@ test_that('bam.cov.tile', {
     ## do.gc
     expect_equal( max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', do.gc=TRUE)$count), 359)
     ## midpoint
+    expect_equal( length(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, min.map=60, midpoint = FALSE)), 382)
 
 })
 
@@ -481,6 +492,11 @@ test_that('varcount', {
 test_that('mafcount', {
     
     expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103) 
+    ## include normal BAM
+    ## if (!is.null(norm.bam)){
+    expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103)
+    ##  if (is.data.frame(maf)){
+    expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = as.data.frame(dt2gr(fread(mafpath))))), 54103)
 
 })
 

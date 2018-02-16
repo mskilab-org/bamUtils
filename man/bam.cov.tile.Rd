@@ -24,13 +24,11 @@ bam.cov.tile(bam.file, bai = NULL, window = 100, chunksize = 1e+05,
 
 \item{st.flag}{string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')}
 
-\item{fragments}{boolean Flag (default = FALSE)}
+\item{fragments}{boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density}
 
 \item{do.gc}{boolean Flag to execute garbage collection via 'gc()' (default = FALSE)}
 
 \item{midpoint}{boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment (default = TRUE)}
-
-\item{region}{um? (default = NULL)}
 }
 \value{
 GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
