@@ -176,19 +176,24 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
             print('filling pos2 from cigar')
         }
         if (ignore.indels) {
-            cigar <- gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
-            cig <- explodeCigarOps(cigar)        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
-            torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]==M]))))
-            M <- charToRaw('M')
+          cigar <- gsub('[0-9]+D', '', gsub('([0-9]+)I', '\\1M', out$cigar))  ## Remove deletions, turn insertions to matches
+          cig = rep(list(), length(cigar))
+          if (any(ix <- !is.na(cigar)))
+              {
+                cig[ix] <- explodeCigarOps(cigar[ix])        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
+              }
+            torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]=="M"]))))
             new.cigar <- sapply(cig[torun], function(y) {
                 lets <- y[[1]][!duplicated(y[[1]])]
                 vals <- y[[2]][!duplicated(y[[1]])]
-                vals[lets==M] <- sum(y[[2]][y[[1]]==M])
+                vals[lets=="M"] <- sum(y[[2]][y[[1]]=="M"])
                 lets <- strsplit(rawToChar(lets), '')[[1]]
                 paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
             })
+          if (any(torun))
             out$cigar[torun] <- new.cigar
         }
+
 
         cigs <- countCigar(out$cigar)
         # out$pos2 <- out$pos + cigs[, "M"]
