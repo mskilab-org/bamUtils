@@ -11,7 +11,14 @@ before_install:
   - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
   - chmod 755 ./travis-tool.sh
   - ./travis-tool.sh bootstrap
+  - pwd
 install:
+  ## install samtools
+  - wget https://github.com/samtools/samtools/releases/download/1.6/samtools-1.6.tar.bz2
+  - tar -vxjf samtools-1.6.tar.bz2
+  - cd samtools-1.6
+  - make
+  - sudo make install; cd /home/travis/build/mskilab/bamUtils
   - ./travis-tool.sh install_bioc_deps
   - ./travis-tool.sh install_deps
   - ./travis-tool.sh install_github r-lib/testthat

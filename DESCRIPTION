@@ -12,7 +12,8 @@ Depends:
     Rsamtools (>= 1.18),
     gUtils
 Imports:
-    abind
+    abind, 
+    VariantAnnotation
 Suggests:
     testthat
 License: GPL-2

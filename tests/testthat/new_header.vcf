@@ -1,0 +1,59 @@
+##fileformat=VCFv4.2
+##fileDate=20180126
+##source=text editor
+##reference=/data/NYGC/Resources/Indexes/bwa/human_g1k_v37.fasta
+##contig=<ID=2,length=243199373>
+##INFO=<ID=DISC_MAPQ,Number=1,Type=Integer,Description="Mean mapping quality of discordant reads mapped here">
+##INFO=<ID=NUMPARTS,Number=1,Type=Integer,Description="If detected with assembly, number of parts the contig maps to. Otherwise 0">
+##INFO=<ID=MATEMAPQ,Number=1,Type=Integer,Description="Mapping quality of the partner fragment of the contig">
+##INFO=<ID=MATEID,Number=1,Type=String,Description="ID of mate breakends">
+##INFO=<ID=MAPQ,Number=1,Type=Integer,Description="Mapping quality (BWA-MEM) of this fragement of the contig (-1 if discordant only)">
+##INFO=<ID=REPSEQ,Number=1,Type=String,Description="Repeat sequence near the event">
+##INFO=<ID=READNAMES,Number=.,Type=String,Description="IDs of ALT reads">
+##INFO=<ID=SCTG,Number=1,Type=String,Description="Identifier for the contig assembled by SnowmanSV to make the SV call">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=NM,Number=1,Type=Integer,Description="Number of mismatches of this alignment fragment to reference">
+##INFO=<ID=MATENM,Number=1,Type=Integer,Description="Number of mismatches of partner alignment fragment to reference">
+##INFO=<ID=SPAN,Number=1,Type=Integer,Description="Distance between the breakpoints. -1 for interchromosomal">
+##INFO=<ID=INSERTION,Number=1,Type=String,Description="Sequence insertion at the breakpoint.">
+##INFO=<ID=SUBN,Number=1,Type=Integer,Description="Number of secondary alignments associated with this contig fragment">
+##INFO=<ID=HOMLEN,Number=1,Type=Integer,Description="Length of base pair identical micro-homology at event breakpoints">
+##INFO=<ID=DBSNP,Number=1,Type=String,Description="TRUE if variant overlaps a dbSNP site">
+##INFO=<ID=HOMSEQ,Number=1,Type=String,Description="Sequence of base pair identical micro-homology at event breakpoints. Plus strand sequence displayed.">
+##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
+##INFO=<ID=EVDNC,Number=1,Type=String,Description="Provides type of evidence for read. ASSMB is assembly only, ASDIS is assembly+discordant. DSCRD is discordant only.">
+##INFO=<ID=SECONDARY,Number=0,Type=Flag,Description="SV calls comes from a secondary alignment">
+##FILTER=<ID=PASS,Description="Strong assembly support, strong discordant support, or combined support. Strong MAPQ">
+##FILTER=<ID=TOOSHORT,Description="Contig alignment for part of this rearrangement has <= 25bp match to reference">
+##FILTER=<ID=LOWICSUPPORT,Description="Less than 60bp of contig match on one end of an inter-chromosomal break">
+##FILTER=<ID=LOWSPLITSMALL,Description="Fewer than 4 split reads for small events ( < 1500 bp)">
+##FILTER=<ID=LOWMAPQDISC,Description="Both clusters of reads failed to achieve mean mapq of > 30 for DSCRD">
+##FILTER=<ID=LOWAS,Description="Alignment score of one end is less than 80% of contig length, or number of mismatch bases (NM) on one end is >= 10">
+##FILTER=<ID=NOLOCAL,Description="Contig realigned to region outside of local assembly region, and no disc support.">
+##FILTER=<ID=WEAKDISC,Description="Fewer than 7 supporting discordant reads and no assembly support">
+##FILTER=<ID=WEAKSUPPORTHIREP,Description="Fewer then 7 split reads for variant with >= 10 bases of repeat sequence (need to be more strict)">
+##FILTER=<ID=LOCALMATCH,Description="Contig realigned to assembly region without clipping">
+##FILTER=<ID=LOWSUPPORT,Description="Fewer than 2 split reads or < 4 total alt reads for ASDISC">
+##FILTER=<ID=LOWQINVERSION,Description="Assembly-only inversion of span < 300 and < 6 split reads. Common artifact in Illumina data">
+##FILTER=<ID=HIGHHOMOLOGY,Description="Contig realigns with > 25% of readlength of homology. High probaility of assembly/mapping artifact">
+##FILTER=<ID=NODISC,Description="Rearrangement was not detected independently by assembly">
+##FILTER=<ID=DUPREADS,Description="Contig built from what appear to be duplicate reads (split reads all same contig cov))">
+##FILTER=<ID=LOWSPANDSCRD,Description="Discordant-only cluster is too small given isize distribution to call confidently">
+##FILTER=<ID=COMPETEDISC,Description="Discordant cluster found with nearly same breakpoints, but different strands for DSCRD event">
+##FILTER=<ID=MULTIMATCH,Description="Low MAPQ and this contig fragment maps well to multiple locations">
+##FILTER=<ID=LOWSPAN,Description="Discordant read cluster (no split read support), and less than 10kb span and < 12 reads">
+##FILTER=<ID=SIMPLESEQUENCE,Description="Major portion of one contig mapping falls in a simple sequence, as given by -R flag. Assembly-only filter">
+##FILTER=<ID=LOWMAPQ,Description="Assembly contig has non 60/60 mapq and no discordant support">
+##FORMAT=<ID=LR,Number=1,Type=Float,Description="Log-odds that this variant is REF vs AF=0.5">
+##FORMAT=<ID=SL,Number=1,Type=Float,Description="Alignment-quality Scaled log-odds, where LO is LO * (MAPQ - 2*NM)/60">
+##FORMAT=<ID=DR,Number=1,Type=Integer,Description="Number of discordant-supported reads for this variant">
+##FORMAT=<ID=SR,Number=1,Type=Integer,Description="Number of spanning reads for this variants">
+##FORMAT=<ID=PL,Number=1,Type=Integer,Description="Normalized likelihood of the current genotype (currently not supported, always 0)">
+##FORMAT=<ID=GQ,Number=1,Type=String,Description="Genotype quality (currently not supported. Always 0)">
+##FORMAT=<ID=LO,Number=1,Type=Float,Description="Log-odds that this variant is real vs artifact">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth of coverage: Number of reads covering site.">
+##FORMAT=<ID=AD,Number=1,Type=Integer,Description="Allele depth: Number of reads supporting the variant">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype (currently not supported. Always 0/1)">
+##SAMPLE=<ID=/gpfs/commons/groups/imielinski_lab/data/CellLines/HCC1143/WGS/HCC1143.final.bam>
+##SAMPLE=<ID=/gpfs/commons/groups/imielinski_lab/data/CellLines/HCC1143/WGS/HCC1143BL.final.bam>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	/gpfs/commons/groups/imielinski_lab/data/CellLines/HCC1143/WGS/HCC1143BL.final.bam	/gpfs/commons/groups/imielinski_lab/data/CellLines/HCC1143/WGS/HCC1143.final.bam

@@ -23,10 +23,18 @@ small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 ## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
 
-tumor_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-tumor_bai = 'smallHCC1143BL.bam.bai' 
+tumor_bam = 'HCC1143.final.subset.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+tumor_bai = 'HCC1143.final.subset.bam.bai' 
 
 small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
+
+somatic_vcf = 'chrom1.vcf'
+
+normalbam = 'smallA4AD_BL.bam'
+tumorbam = 'smallA4AD_tum.bam'
+
+mafpath = 'snv.annotated.A4AD.maf'
+
 
 
 test_that('read.bam', {
@@ -57,7 +65,7 @@ test_that('read.bam', {
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), what='qwidth')
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='MD')  ## error, https://www.rdocumentation.org/packages/Rsamtools/versions/1.24.0/topics/BamInput
     ## verbose
-    ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), verbose=TRUE))
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027) 
     ## check 'tag' works correctly
     expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE))))
     expect_error(('nonsense_tag' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'nonsense_tag', as.data.table=TRUE))))
@@ -175,11 +183,6 @@ test_that('bam.cov.tile', {
 
 
 
-## oneoffs()
-
-## test_that('oneoffs', {
-##
-## })
 
 
 ## get.mate.gr()
@@ -220,7 +223,10 @@ test_that('count.clips', {
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$right.clips[2], 0)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$left.clips[1], 2)
     expect_equal(count.clips(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]])$left.clips[2], 0)
+    ## check 'if (length(reads) == 0)'
+    expect_equal(length(count.clips(GRanges())), 0)
 })
+
 
 
 ## varbase
@@ -248,6 +254,11 @@ test_that('varbase', {
     expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$border, 'blue')    
     ## verbose
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]], verbose=FALSE)), 2)
+    ## if (inherits(reads, 'GRangesList')){
+    expect_equal(length(varbase(GRangesList(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))))[[2]]), 10)
+    ## else if (inherits(reads, 'data.frame')){
+    expect_equal(length(varbase(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))[[2]]))[[1]]), 5)
+    expect_equal(varbase(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:5075-18800'))[[2]]))[[1]][2]$varbase, 'C')
 
 })
 
@@ -287,6 +298,14 @@ test_that('splice.cigar', {
     expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')), use.D = FALSE)[[1]])))  ## should be a 'riid' column in GRanges
     expect_true('riid' %in% colnames(as.data.frame(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')), use.D = FALSE)[[2]])))
     ## tests for 'rem.soft' and 'get.seq'
+    ## check 'if (nreads==0){'
+    expect_true(is(splice.cigar(GRanges()), 'GRangesList'))
+    expect_equal(length(splice.cigar(GRanges())), 0)
+    ##  if (inherits(reads, 'GRangesList')){
+    expect_equal(splice.cigar(GRangesList(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))))[[3]]$type, 'M')
+    ## if (is.data.frame(reads)){
+    ##   unable to find an inherited method for function ‘values’ for signature ‘"data.table"’
+
 })
 
 
@@ -377,31 +396,14 @@ test_that('countCigar', {
 
 
 test_that('is.paired.end', {
-
+## 
     expect_true(as.logical(is.paired.end(example_bam)))
     expect_true(as.logical(is.paired.end(small_MD_bam)))
     expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
 
 })
 
-chunk = function(from, to = NULL, by = 1, length.out = NULL)
-{
-    if (is.null(to)){
-        to = from;
-        from = 1;
-    }
 
-    if (is.null(length.out)){
-        tmp = c(seq(from = from, to = to, by = by), to + 1)
-    }
-    else{
-        tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
-    }
-
-    out = floor(cbind(tmp[-length(tmp)], tmp[-1]-1))
-
-    return(out)
-}
 
 
 test_that('chunk', {
@@ -446,18 +448,41 @@ test_that('varcount', {
 
 
 
-### mafcount
+## read_vcf()
+## read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL, verbose = FALSE, add.path = FALSE, tmp.dir = '~/temp/.tmpvcf', ...)
+##test_that('read_vcf', {
+#    ## error
+#    expect_error(read_vcf('foobar'))
+#    ## default 
+#    expect_equal(length(read_vcf(somatic_vcf)), 60)
+#    expect_equal(length(seqnames(seqinfo(read_vcf(somatic_vcf)))), 84)
+#    ## gr  gr= GRanges('1:10075-10100')
+#    ## hg
+##    expect_match(unique(as.data.frame(seqinfo(read_vcf(somatic_vcf, hg='hg12345')))$genome), 'hg12345')
+#    ## geno
+#    ## swap.header
+#    expect_equal(length(seqnames(seqinfo(read_vcf(somatic_vcf, swap.header='/Users/ebiederstedt/bamUtils/tests/testthat/new_header.vcf')))), 2)
+#    ## verbose
+#    expect_equal(length(read_vcf(somatic_vcf, verbose=TRUE)), 60)
+#    ## check 'if (!file.exists(swap.header))'
+#    expect_error(read_vcf(somatic_vcf, swap.header='foobar'))
+#
+#})
 
 
 
-### hets
+##test_that('write_vcf', {
+    ##expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
+    ## 
+##})
 
 
 
+test_that('mafcount', {
+    
+    expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103) 
 
-
-
-
+})
 
 
 

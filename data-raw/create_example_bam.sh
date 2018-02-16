@@ -43,6 +43,8 @@ samtools index smallHCC1143BL.filtered.MD.bam
 
 ## create tumor/normal pairs with FASTA and VCF
 
+### FASTA
+
 samtools faidx human_g1k_v37_decoy.fasta
 
 samtools faidx human_g1k_v37_decoy.fasta chr1 > your_subset_file.fa
@@ -52,6 +54,8 @@ cat chr1_human_g1k_v37_decoy.fasta | head -n 200000 > chr1_human_g1k_v37_decoy.s
 samtools faidx  chr1_human_g1k_v37_decoy.subset.fasta
 
 
+## TUMOR
+
 ### we have a small version of HCC1143BL
 ## now get HCC1143
 
@@ -60,7 +64,41 @@ samtools view HCC1143.final.bam  | head -n 10000 | cat  HCC1143.header.sam - | s
 
 samtools index HCC1143.final.subset.bam 
 
+### VCF
 
+## module load vcftools/0.1.14
+## vcf-validator HCC1143_nygc.snowman.somatic.sv.vcf   ## buggy
+
+## use this
+grep -E '^(#|1[[:space:]])' HCC1143_nygc.snowman.somatic.sv.vcf  > chrom1.vcf 
+
+## vcf-validator chrom1.vcf    ## obviously still buggy
+
+##module load  htslib/1.5
+##module load  bcftools/1.4.1 
+
+## htslib commands
+##bgzip -c HCC1143_nygc.snowman.somatic.sv.vcf  > HCC1143_nygc.snowman.somatic.sv.vcf.gz
+##tabix -p vcf HCC1143_nygc.snowman.somatic.sv.vcf.gz
+
+##bcftools filter  HCC1143_nygc.snowman.somatic.sv.vcf.gz -r 1
+
+## [E::vcf_parse_format] Invalid character '.' in 'PL' FORMAT field at 1:6525379
+
+## /gpfs/commons/groups/imielinski_lab/projects/CellLines/Flow/Snowman/HCC1143_nygc/HCC1143_nygc.snowman.somatic.sv.vcf
+
+## R
+## > library(skidb)
+## > library(data.table)
+## > totalvcf = read_vcf('')
+## > chr1 = totalvcf[seqnames(totalvcf) == 1]
+## > length(chr1) ## 60 
+## 
+
+
+
+
+## perl vcf2maf.pl --input-vcf /gpfs/commons/home/biederstedte-934/tmp_BAM_bamUtils/HCC1143_nygc.snowman.somatic.sv.vcf --output-maf  /gpfs/commons/home/biederstedte-934/tmp_BAM_bamUtils/HCC1143_nygc.snowman.somatic.sv.maf  
 
 
 
