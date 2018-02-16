@@ -378,8 +378,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' @param verbose boolean Flag to increase vebosity (default = TRUE)
 #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
 #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
-#' @param fragments boolean Flag (default = FALSE)
-#' @param region um? (default = NULL)
+#' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
 #' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
 #' @param midpoint boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment (default = TRUE)
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
