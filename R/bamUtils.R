@@ -1974,3 +1974,103 @@ hets = function(tum.bam, norm.bam = NULL, out.file, vcf.file, chunk.size1 = 1e3,
 
 
 
+
+
+#' @name read_vcf
+#' @title read_vcf
+#'
+#' @description
+#'
+#' wrapper around variantAnnotation reads VCF into granges or data.table format
+#'
+#' @author Marcin Imielinski
+#' @export
+read_vcf = function(fn, gr = NULL, hg = 'hg19', geno = NULL, swap.header = NULL, verbose = FALSE, add.path = FALSE, tmp.dir = '~/temp/.tmpvcf', ...)
+    {
+        require(VariantAnnotation)
+        in.fn = fn
+
+        if (verbose)
+            cat('Loading', fn, '\n')
+
+        if (!is.null(gr))
+            {
+                tmp.slice.fn = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
+                cmd = sprintf('bcftools view %s %s > %s', fn,  paste(gr.string(gr.stripstrand(gr)), collapse = ' '), tmp.slice.fn)
+                if (verbose)
+                    cat('Running', cmd, '\n')
+                system(cmd)
+                fn = tmp.slice.fn
+            }
+
+        if (!is.null(swap.header))
+            {
+                if (!file.exists(swap.header))
+                    stop(sprintf('Swap header file %s does not exist\n', swap.header))
+
+                system(paste('mkdir -p', tmp.dir))
+                tmp.name = paste(tmp.dir, '/vcf_tmp', gsub('0\\.', '', as.character(runif(1))), '.vcf', sep = '')
+                if (grepl('gz$', fn))
+                    system(sprintf("zcat %s | grep '^[^#]' > %s.body", fn, tmp.name))
+                else
+                    system(sprintf("grep '^[^#]' %s > %s.body", fn, tmp.name))
+
+                if (grepl('gz$', swap.header))
+                    system(sprintf("zcat %s | grep '^[#]' > %s.header", swap.header, tmp.name))
+                 else
+                    system(sprintf("grep '^[#]' %s > %s.header", swap.header, tmp.name))
+
+                system(sprintf("cat %s.header %s.body > %s", tmp.name, tmp.name, tmp.name))
+                vcf = readVcf(tmp.name, hg, ...)
+                system(sprintf("rm %s %s.body %s.header", tmp.name, tmp.name, tmp.name))
+            }
+        else
+            vcf = readVcf(fn, hg, ...)
+
+        out = granges(vcf)
+
+        if (!is.null(values(out)))
+            values(out) = cbind(values(out), info(vcf))
+        else
+            values(out) = info(vcf)
+
+
+        if (!is.null(geno))
+        {
+
+          if (!is.logical(geno))
+            geno = TRUE
+
+
+          if (geno)
+            for (g in  names(geno(vcf)))
+            {
+              geno = names(geno(vcf))
+              warning(sprintf('Loading all geno fields:\n\t%s', paste(geno, collapse = ',')))
+            }
+
+          gt = NULL
+          if (length(g)>0)
+            {
+              for (g in geno)
+              {
+                m = as.data.frame(geno(vcf)[[g]])
+                names(m) = paste(g, names(m), sep = '_')
+                if (is.null(gt))
+                  gt = m
+                else
+                  gt = cbind(gt, m)
+              }
+              values(out) = cbind(values(out), as(gt, 'DataFrame'))
+            }
+        }
+
+          if (!is.null(gr))
+            system(paste('rm', tmp.slice.fn))
+
+        if (add.path)
+            values(out)$path = in.fn
+
+        return(out)
+    }
+
