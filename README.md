@@ -4,7 +4,7 @@
 
 # bamUtils
 
-Set of utility functions to work with BAM files, based on `Rsamtools`, `GenomnicRanges` and `data.table`
+Set of utility functions to work with BAM files, based on `Rsamtools`, `GenomicRanges` and `data.table`
 
 ## Installation
 
