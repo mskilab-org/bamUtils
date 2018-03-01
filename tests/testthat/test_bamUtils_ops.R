@@ -77,7 +77,7 @@ test_that('read.bam', {
     ## if (class(intervals) == 'data.frame'){
     expect_equal(length(read.bam(example_bam, all=TRUE, intervals = as.data.frame(gr2dt(GRanges('1:10075-10100'))), verbose=TRUE)), 1027)
     ## check 'tag' works correctly
-    expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE))))
+    expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE, verbose=TRUE))))
     expect_error(('nonsense_tag' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'nonsense_tag', as.data.table=TRUE))))
     #### checking Rsamtools::scanBamFlag() flags
     ## 'isPaired'
@@ -441,7 +441,7 @@ test_that('is.paired.end', {
     expect_true(as.logical(is.paired.end(example_bam)))
     expect_true(as.logical(is.paired.end(small_MD_bam)))
     expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
-
+    expect_equal(as.logical(is.paired.end(NA)), NA)
 })
 
 
@@ -451,6 +451,9 @@ test_that('chunk', {
 
     expect_equal(dim(chunk(2, 10, 1, length.out=4))[1], 4)
     expect_equal(dim(chunk(2, 10, 1, length.out=4))[2], 2)
+    ## to = NULL
+    expect_equal(chunk(2, NULL, 1, length.out=4)[, 1], c(1, 1, 1, 2))
+    expect_equal(chunk(2, NULL, 1, length.out=4)[, 2], c(0, 0, 1, 2))
 
 })
 
@@ -487,6 +490,8 @@ test_that('varcount', {
     ## if (any(!file.exists(bami)))
     ##  Error: one or more BAM file indices missing
     expect_error(varcount(noindexbam, gr= GRanges('1:10075-10100')))
+    ## try two BAMs
+    expect_equal(length(varcount(c(normalbam, tumorbam), gr= GRanges('1:10075-10100'))$counts), 10)
 
 })
 
@@ -531,10 +536,21 @@ test_that('mafcount', {
     ##  if (is.data.frame(maf)){
     ##  strange error here...
     ## expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = as.data.frame(dt2gr(fread(mafpath))))), 54103)
+    ## if (is.null(maf$Tumor_Seq_Allele1)){
+    ## if (is.null(maf$Tumor_Seq_Allele1)){
+    ## if (is.null(maf$Reference_Allele)){
+    ## if (is.null(maf$Reference_Allele)){
+    ## if (!all(is.character(maf$Tumor_Seq_Allele1))){
+    ## if (!all(is.character(maf$Reference_Allele))){                       
+    ## if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
+    maffoo = dt2gr(fread(mafpath))
+    maffoo$Tumor_Seq_Allele1 = NULL
+    maffoo$Reference_Allele = NULL
+    expect_error(mafcount(tumorbam, chunk.size = 1e5, maf = maffoo))
+    ## Error: Cannot locate variant columns in input GRanges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele
+
 
 })
-
-
 
 
 

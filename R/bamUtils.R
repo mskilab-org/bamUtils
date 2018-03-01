@@ -1566,6 +1566,10 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         maf$Reference_Allele = maf$REF
     }
 
+                        
+    if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
+        stop('Error: Cannot locate variant columns in input GRanges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele')
+    }
 
     if (!all(is.character(maf$Tumor_Seq_Allele1))){
         maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
@@ -1576,10 +1580,6 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         maf$Reference_Allele = as.character(maf$Reference_Allele)
     }
 
-                        
-    if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
-        stop('Error: Cannot locate variant columns in input GRanges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele')
-    }
             
     maf$alt.count.t = maf$ref.count.t = NA
 
