@@ -384,8 +384,8 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
 #' @export
-bam.cov.tile = function(bam.file, bai = NULL, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
-                        st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE)
+bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
+                        st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE, bai = NULL)
 {
     cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
@@ -1391,7 +1391,6 @@ is.paired.end = function(bams)
 #' @param by integer Interval to space sequence (default = 1)
 #' @param length.out integer Number of desired chunks, i.e. nrows of output matrix (default = NULL)
 #' @return 2-column matrix of indices, each row representing a chunk
-#' @export
 #' @author Marcin Imielinski
 chunk = function(from, to = NULL, by = 1, length.out = NULL)
 {
