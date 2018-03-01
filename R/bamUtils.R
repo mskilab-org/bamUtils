@@ -532,7 +532,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
         cat('deduping\n')
     }
 
-    if (is(reads, 'GappedAlignmentPairs')){
+    if (is(reads, 'GappedAlignmentPairs') | is(reads, 'GAlignmentPairs')){
         reads = unlist(reads)
     }
 

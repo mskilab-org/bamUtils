@@ -1,6 +1,7 @@
 
 library(bamUtils)
 library(testthat)
+library(gUtils)
 
 context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 
@@ -71,6 +72,10 @@ test_that('read.bam', {
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='MD')  ## error, https://www.rdocumentation.org/packages/Rsamtools/versions/1.24.0/topics/BamInput
     ## verbose
     expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027) 
+    ## if (inherits(intervals, 'GRangesList')){
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = grl2, verbose=TRUE)), 0) 
+    ## if (class(intervals) == 'data.frame'){
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = as.data.frame(gr2dt(GRanges('1:10075-10100'))), verbose=TRUE)), 1027)
     ## check 'tag' works correctly
     expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE))))
     expect_error(('nonsense_tag' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), tag = 'nonsense_tag', as.data.table=TRUE))))
@@ -220,12 +225,15 @@ test_that('get.mate.gr', {
 test_that('get.pairs.grl', {
 
     expect_error(get.pairs.grl(read.bam(example_bam, all=TRUE))) ## Error in (function (classes, fdef, mtable)  :  unable to find an inherited method for function ‘granges’ for signature ‘"GRangesList"’
-    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'), TRUE)
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'), TRUE)
     ## pairs.grl.split
-    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], pairs.grl.split=FALSE), 'GRanges'), TRUE)
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], pairs.grl.split=FALSE, verbose=TRUE), 'GRanges'), TRUE)
     ## verbose 
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'))
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE, pairs.grl.split=FALSE), 'GRanges'), TRUE)
+    ## if (is(reads, 'GappedAlignmentPairs')){
+    gapp = readGAlignmentPairs(example_bam)
+
 
 })
 
@@ -332,6 +340,11 @@ test_that('splice.cigar', {
     ##   unable to find an inherited method for function ‘values’ for signature ‘"data.table"’
     ## if (inherits(reads, 'GRangesList')){
     expect_equal(length(splice.cigar(reads= read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))), 2054)
+    ## GRangesList
+    ### Error: Reads must have cigar and seq fields specified. Please see documentation for details.
+    expect_error(splice.cigar(grl2))
+    ## data.frame
+    ## expect_equal(length(splice.cigar(as.data.frame(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))
 
 
 })
