@@ -64,6 +64,14 @@ samtools view HCC1143.final.bam  | head -n 10000 | cat  HCC1143.header.sam - | s
 
 samtools index HCC1143.final.subset.bam 
 
+
+
+
+###  multiple seqlevels
+
+nice samtools view -bo HCC1143BL.final.percent.bam -s 123.00001 HCC1143BL.final.bam
+
+
 ### VCF
 
 ## module load vcftools/0.1.14

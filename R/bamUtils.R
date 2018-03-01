@@ -64,15 +64,12 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         {
             if (file.exists(bai <- gsub('.bam$', '.bai', bam))){
                 bam = BamFile(bam, bai)
-            }
-            else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
+            } else if (file.exists(bai <- paste(bam, '.bai', sep = ''))){
                 bam = BamFile(bam, bai)
-            }
-            else{
+            } else{
                 bam = BamFile(bam)
             }
-        }
-        else{
+        } else{
             bam = BamFile(bam, index = bai)
         }
     }
@@ -89,8 +86,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     {
         if (all){
             intervals = si2gr(seqinfo(bam))
-        }
-        else{
+        } else{
             stop('Error: Must provide non empty interval list')
         }
     }
@@ -128,8 +124,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     }
     if (class(bam) == 'BamFile'){
         out <- scanBam(bam, param=param)
-    }
-    else{
+    } else{
         out <- scanBam(bam, index=bai, param=param)
     }
 
@@ -190,8 +185,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                 lets <- strsplit(rawToChar(lets), '')[[1]]
                 paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
             })
-          if (any(torun))
+          if (any(torun)){
             out$cigar[torun] <- new.cigar
+          }
+
         }
 
 
@@ -218,18 +215,15 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         if (!as.data.table) {
             out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
             values(out) <- vals;
-        } 
-        else {
+        } else {
             out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
-    }
-    else {
+    } else {
         if (!as.data.table){
             return(GRanges(seqlengths = seqlengths(intervals)))
-        }
-        else{
+        } else{
             return(data.table())
         }
     }
@@ -238,8 +232,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     {
         if (as.data.table){
             cat(sprintf('Extracted %s reads\n', nrow(out)))
-        }
-        else{
+        } else{
             cat(sprintf('Extracted %s reads\n', length(out)))
         }
         print(Sys.time() - now)
@@ -306,16 +299,12 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
     if (is.character(bam))
         if (!is.null(bai)){
             bam = BamFile(bam, bai)
-        }
-        else
-        {
+        } else{
             if (file.exists(paste(bam, 'bai', sep = '.'))){
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            }
-            else if (file.exists(gsub('.bam$', '.bai', bam))){
+            } else if (file.exists(gsub('.bam$', '.bai', bam))){
                 bam = BamFile(bam, paste(bam, 'bai', sep = '.'))
-            }
-            else{
+            } else{
                 stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
             }
         }
@@ -323,16 +312,14 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
     
-    if (length(keep) > 0)
-    {
+    if (length(keep) > 0){
       ix = c(keep[c(seq(1, length(keep), chunksize))], keep[length(keep)] + 1);  ## prevent bam error from improper chromosomes
         chunk.id = unlist(lapply(1:(length(ix) - 1), function(x) rep(x, ix[x+1] - ix[x])))
 
         gr.chunk = split(intervals[keep], chunk.id[keep]);
         if (count.all){
             flag = scanBamFlag()
-        }
-        else{
+        } else{
             flag = scanBamFlag(isPaired = isPaired, isProperPair = isProperPair, isUnmappedQuery = isUnmappedQuery,
                                hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
                                isDuplicate = isDuplicate, ...)
@@ -350,8 +337,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
       out.tag = paste(out$space, out$start, out$end);
       ix = match(gr.tag, out.tag);
       values(intervals) = cbind(as.data.frame(values(intervals)), out[ix, c('file', 'records', 'nucleotides'), with = FALSE])
-    }
-    else{
+    } else{
         values(intervals) = cbind(as.data.frame(values(intervals)), data.frame(file = rep(gsub('.*\\/([^\\/]+)$', '\\1', path(bam)), length(intervals)), records = NA, nucleotides = NA))
     }
 
@@ -424,17 +410,16 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
                 ## only take midpoints
                 chunk[, bin := 1 + floor((V2 + V3/2)/window)] ## use midpoint of template to index the correct bin
 
-            }## enumerate all bins containing fragment i.e. where fragments overlap multiple bins  (slightly slower)
-            else {
+            } else {
+                ## enumerate all bins containing fragment i.e. where fragments overlap multiple bins  (slightly slower)
                 if (verbose){
                     cat('Counting all overlapping bins!\n')
                 }
                 chunk[, ":="(bin1 = 1 + floor((V2)/window), bin2 = 1 + floor((V2+V3)/window))]
                 chunk = chunk[, list(V1, bin = bin1:bin2), by = list(ix = 1:length(V1))]
             }
-        }
-        else ## just count reads
-        {
+        } else{   
+            ## just count reads
             cat('Just counting reads\n')
             chunk = fread(paste(chunk, collapse = "\n"), header = F)
             chunk[, bin := 1 + floor((V2)/window)]
@@ -494,8 +479,7 @@ get.mate.gr = function(reads)
         mapq = values(reads)$MQ
         bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
         mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (i.e. as if unmapped)
-    } 
-    else if (inherits(reads, 'data.table')) {
+    } else if (inherits(reads, 'data.table')) {
         mpos <- reads$mpos
         mrnm <- reads$mrnm
         mapq = reads$MQ
@@ -505,8 +489,7 @@ get.mate.gr = function(reads)
 
     if (inherits(reads, 'GappedAlignments')){
         mwidth = qwidth(reads)
-    }
-    else{
+    } else{
         mwidth = reads$qwidth
         mwidth[is.na(mwidth)] = 0
     }
@@ -517,11 +500,9 @@ get.mate.gr = function(reads)
 
     if (inherits(reads, 'GappedAlignments')){
         GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    }
-    else if (inherits(reads, 'GRanges')){
+    } else if (inherits(reads, 'GRanges')){
         GRanges(mrnm, IRanges(mpos, width = mwidth), strand = c('+', '-')[1+bamflag(reads$flag)[, 'isMateMinusStrand']], seqlengths = seqlengths(reads), qname = values(reads)$qname, mapq = mapq)
-    }
-    else if (inherits(reads, 'data.table')){
+    } else if (inherits(reads, 'data.table')){
         ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
     }
 }
@@ -558,8 +539,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
     if (inherits(reads, 'GRanges')) {
         d = duplicated(values(reads)$qname)  ## duplicates are already paired up
         qpair.ix = values(reads)$qname %in% unique(values(reads)$qname[d])
-    } 
-    else if (isdt){
+    } else if (isdt){
         d = duplicated(reads$qname)
         qpair.ix = reads$qname %in% unique(reads$qname[d])
     }
@@ -570,11 +550,9 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
             cat('converting to GRanges\n')
         }
         r.gr = granges(reads)
-    }
-    else if (!isdt){
+    } else if (!isdt){
         r.gr = reads[, c()]
-    }
-    else{
+    } else{
         r.gr = reads
     }
 
@@ -589,8 +567,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
         values(m.gr) = NULL;
         r.gr = c(r.gr, m.gr);
         mcols(r.gr) = rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col), drop = FALSE], m.val)
-    } 
-    else if (isdt) {
+    } else if (isdt) {
         m.gr = m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with = FALSE]
         r.gr = rbind(reads, m.gr, use.names = TRUE)
         setkey(r.gr, qname)
@@ -601,8 +578,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
             cat('splitting\n')
         }
         return(split(r.gr, as.character(r.gr$qname)))
-    } 
-    else {
+    } else {
         return(r.gr)
     }
 }
@@ -635,8 +611,7 @@ count.clips = function(reads)
     }
     if (inherits(reads, 'GRanges') | inherits(reads, 'GappedAlignments')){
         cigar = values(reads)$cigar
-    }
-    else{
+    } else{
         cigar = reads
     }
 
@@ -678,10 +653,10 @@ count.clips = function(reads)
 ## alpha() used in varbase
 alpha = function(col, alpha)
 {
-  col.rgb = col2rgb(col)
-  out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
-  names(out) = names(col)
-  return(out)
+    col.rgb = col2rgb(col)
+    out = rgb(red = col.rgb['red', ]/255, green = col.rgb['green', ]/255, blue = col.rgb['blue', ]/255, alpha = alpha)
+    names(out) = names(col)
+    return(out)
 }
 
 
@@ -721,13 +696,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         was.grl = TRUE
         r.id = grl.unlist(reads)$grl.ix
         reads = unlist(reads)
-    }
-    else if (inherits(reads, 'data.frame')){
+    } else if (inherits(reads, 'data.frame')){
         r.id = 1:nrow(reads)
         nreads = nrow(reads)
         was.grl = FALSE
-    }
-    else{
+    } else{
         r.id = 1:length(reads)
         was.grl = FALSE
     }
@@ -746,12 +719,10 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         if (!is.null(reads$MD)){
             md = as.character(reads$MD)
-        }
-        else{
+        } else{
             md = rep(NA, length(cigar))
         }
-    }
-    else{
+    } else{
 
         sl = seqlengths(reads)
         sn =  seqnames(reads)
@@ -761,8 +732,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 
         if (!is.null(values(reads)$MD)){
             md = as.character(values(reads)$MD)
-        }
-        else{
+        } else{
             md = rep(NA, length(cigar))
         }
     }
@@ -785,8 +755,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     if (is.data.frame(reads)){
         r.start = reads$start[ix]
         r.end = reads$end[ix]
-    }
-    else{
+    } else{
         r.start = start(reads)[ix]
         r.end = end(reads)[ix];
     }
@@ -890,8 +859,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     subs.rpos = lapply(tmp.pos, function(x) x[2,])
     if (is.null(seq)){
         subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCNatcgn]', value = T), function(x) rep('X', length(x))) ## replace with N
-    }
-    else{
+    } else{
         subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
     }      
 
@@ -925,12 +893,10 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
             values(subs.gr)$varlen = 1
             values(subs.gr)$type = 'X'
             values(subs.gr)$iix = ix[iix.md]
-        }
-        else{
+        } else{
             subs.gr = GRanges()
         }
-    }
-    else{
+    } else{
         subs.gr = GRanges()
     }
 
@@ -959,13 +925,11 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
             
             if (ends.seq[i]<starts.seq[i]){
                 return('') # deletion
-            }
-            else{
+            } else{
                                 
                 if (length(seq[[iix[i]]])==0){
                     rep('N', ends.seq[i]-starts.seq[i]+1)
-                }
-                else{
+                } else{
                     seq[[iix[i]]][starts.seq[i]:ends.seq[i]] #insertion
                 }
             }
@@ -977,8 +941,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         values(other.gr)$type = cigar.vals
         values(other.gr)$iix = ix[iix];
         out.gr = sort(c(subs.gr, other.gr))
-    }
-    else{
+    } else{
         out.gr = subs.gr
     }
     ## add default colors to out.gr
@@ -1050,8 +1013,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     if (nreads==0){
         if (return.grl){
             return(GRangesList())
-        }
-        else{
+        } else{
             return(GRanges)
         }
     }
@@ -1060,7 +1022,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         was.grl = TRUE
         r.id = as.data.frame(reads)$element
         reads = unlist(reads)
-    }else{
+    } else{
         r.id = 1:length(reads)
         was.grl = FALSE
     }
@@ -1074,10 +1036,10 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 
         if (!is.null(reads$MD)){
             md = as.character(reads$MD)
-        }else{
+        } else{
             md = rep(NA, length(cigar))
         }
-    }else{
+    } else{
         sl = seqlengths(reads)
         sn =  seqnames(reads)
         cigar = as.character(values(reads)$cigar)
@@ -1086,7 +1048,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 
         if (!is.null(values(reads)$MD)){
             md = as.character(values(reads)$MD)
-        }else{
+        } else{
             md = rep(NA, length(cigar))
         }
     }
@@ -1105,7 +1067,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
     if (length(ix)==0){
         if (return.grl){
             return(rep(GRangesList(GRanges()), nreads))
-        }else{
+        } else{
             return(GRanges())
         }       
     }
@@ -1126,10 +1088,10 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             tmp.grl = split(out.gr, out.gr$fid)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
-        }else{
+        } else{
             return(out.gr)
         }
-    }else{
+    } else{
 
         cigar = cigar[ix]
         str = str[ix]
@@ -1137,7 +1099,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
         if (is.data.frame(reads)){
             r.start = reads$start[ix]
             r.end = reads$end[ix]
-        }else{
+        } else{
             r.start = start(reads)[ix]
             r.end = end(reads)[ix];
         }
@@ -1213,7 +1175,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
                     function(i){
                         if (ends.seq[i]<starts.seq[i]){
                             return('') ## deletion
-                            }else{
+                            } else{
                             seq[[iix[i]]][starts.seq[i]:ends.seq[i]] ## insertion
                         }
                     })
@@ -1237,7 +1199,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             tmp.grl = split(out.gr, out.iix)
             out.grl[as.numeric(names(tmp.grl))] = tmp.grl
             return(out.grl)
-        }else{
+        } else{
             return(out.gr)
         }
     }
@@ -1260,8 +1222,7 @@ bamflag = function(reads)
 {
     if (inherits(reads, 'GappedAlignments') | inherits(reads, 'data.frame') | inherits(reads, 'GRanges')){
         bf = reads$flag
-    }
-    else{
+    } else{
         bf = reads
     }
 
@@ -1401,8 +1362,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 
     if (is.null(length.out)){
         tmp = c(seq(from = from, to = to, by = by), to + 1)
-    }
-    else{
+    } else{
         tmp = c(seq(from = from, to = to, length.out = length.out), to + 1)
     }
 
@@ -1462,7 +1422,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
             stop('Error: one or more BAM file indices missing')
         }
         bams = BamFileList(mapply(function(bam, bai) BamFile(bam, index = bai), bams, bami, SIMPLIFY = FALSE))
-    }else if (is(bams, 'BamFile')){
+    } else if (is(bams, 'BamFile')){
         bams = BamFileList(bams)
     }
 
@@ -1499,11 +1459,11 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
     if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
         bam.paths = Rsamtools::path(bams)
-    }else if (is(bams, 'BamFileList')){
+    } else if (is(bams, 'BamFileList')){
         bam.paths = sapply(bams, path)
-    }else if (is(bams, 'list')){
+    } else if (is(bams, 'list')){
         bam.paths = sapply(bams, path)
-    }else if (is(bams, 'character')){
+    } else if (is(bams, 'character')){
         bam.paths = bams
     }
 
@@ -1517,7 +1477,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
                 x$seq[cnames,,, drop = F]
             })), c(1,3,2))
         }
-    }else{
+    } else{
         cnames = unique(unlist(lapply(pu, function(x) rownames(x$seq))))
         cnames = cnames[order(nchar(cnames), cnames)]
         out$counts = array(NA, dim = c(length(cnames), length(gr), length(bams)), dimnames = list(cnames, NULL, bam.paths))
@@ -1579,7 +1539,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         ## prevent incompatible BAM headers
         if (identical(seqlengths(bams), seqlengths(norm.bam))){
             bams = c(bams, BamFileList(norm.bam))
-        }else{
+        } else{
             bams2 = BamFileList(norm.bam)
         }
     }
@@ -1682,8 +1642,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             ## prevent incompatible BAM headers
             if (identical(seqlengths(bams), seqlengths(norm.bam))){
                 norm.count = vc$counts[, , 2]                      
-            }
-            else{
+            } else{
                 norm.count = vc2$counts[, , 1]
             }
             if (is.null(dim(norm.count))){
@@ -1703,7 +1662,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
     ### write check if only NA's
     if (all(is.na(tmp))){
         return(Granges()) ### return empty GRanges
-    }else{
+    } else{
         maf$alt.count.t = tmp[,1]
         maf$ref.count.t = tmp[,2]
         maf$alt.frac.t = maf$alt.count.t / (maf$alt.count.t + maf$ref.count.t)

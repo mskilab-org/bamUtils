@@ -35,12 +35,15 @@ tumorbam = 'smallA4AD_tum.bam'
 
 mafpath = 'snv.annotated.A4AD.maf'
 
+noindexbam = 'bam_noindex.bam'
+
 
 
 test_that('read.bam', {
     
     ## default
     expect_error(read.bam(example_bam))  ## Error in read.bam(example_bam) : Must provide non empty interval list
+    expect_error(read.bam(noindexbam, all=TRUE)) ## Error in value[[3L]](cond) : valid 'index' file required
     ## test 'all' FLAG
     expect_equal(length(read.bam(example_bam, all=TRUE)), 4999)   ## read in entire BAM
     expect_equal(length(read.bam(small_MD_bam, all=TRUE)), 19089)     
@@ -49,6 +52,8 @@ test_that('read.bam', {
     expect_equal(ncol(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 16) ## data.table == NULL, should have ncol == 16
     expect_equal(nrow(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 9998) 
     expect_true(is(read.bam(example_bam, all=TRUE, as.data.table=TRUE), 'data.table'))  
+    ## ignore.indels
+    expect_equal(length(read.bam(example_bam, all=TRUE, ignore.indels=TRUE)), 4999)
     ## check GRanges for 'intervals' whereby intervals to retrieve overlap BAM reads
     ## check 'chr##' vs. '##' error
     expect_error(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))) ## Error in GenomeInfoDb:::getDanglingSeqlevels()
@@ -118,7 +123,11 @@ test_that('read.bam', {
 ### bam.cov.gr
 test_that('bam.cov.gr', {
 
+    ## if (missing(bam) | missing(intervals)){
+    expect_error(bam.cov.gr())
     expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
+    ## if (!is.null(bai)){
+    expect_error(bam.cov.gr(noindexbam, intervals = GRanges('1:10075-10100')))
     ## intervals
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))), 26)
     expect_match(as.character(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'))$file), 'smallHCC1143BL.bam')
@@ -127,6 +136,9 @@ test_that('bam.cov.gr', {
     ## all
     ## verbose
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
+    ## count.all
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$records, 1372)
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$nucleotides, 138572)
     ## isPaired 
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
@@ -149,6 +161,7 @@ test_that('bam.cov.gr', {
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
     ## chunksize 
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
+    ## 
 
 })
 
@@ -176,8 +189,12 @@ test_that('bam.cov.tile', {
     expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', fragments=FALSE)$count), 360)
     ## regions
     ## do.gc
-    expect_equal( max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', do.gc=TRUE)$count), 359)
+    expect_equal(max(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, max.tlen = 1e6, st.flag = '', do.gc=TRUE)$count), 359)
     ## midpoint
+    expect_equal(length(bam.cov.tile(example_bam, window=1e7, verbose=FALSE, min.map=60, midpoint = FALSE)), 382)
+    ## bam.cov.tile
+    expect_equal(bam.cov.tile(example_bam, window=1e7, verbose=TRUE, min.map=60)[1]$count, 14)
+
 
 })
 
@@ -208,6 +225,7 @@ test_that('get.pairs.grl', {
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], pairs.grl.split=FALSE), 'GRanges'), TRUE)
     ## verbose 
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'))
+    expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE, pairs.grl.split=FALSE), 'GRanges'), TRUE)
 
 })
 
@@ -231,6 +249,8 @@ test_that('count.clips', {
 
 ## varbase
 test_that('varbase', {
+    ## Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.
+    expect_error(varbase('foobar'))
     ## default
     expect_true(is(varbase(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'))
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
@@ -263,6 +283,11 @@ test_that('varbase', {
 })
 
 
+
+gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))
+
+
+as.data.frame(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[2]]))
 
 
 test_that('splice.cigar', {
@@ -305,6 +330,9 @@ test_that('splice.cigar', {
     expect_equal(splice.cigar(GRangesList(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))))[[3]]$type, 'M')
     ## if (is.data.frame(reads)){
     ##   unable to find an inherited method for function ‘values’ for signature ‘"data.table"’
+    ## if (inherits(reads, 'GRangesList')){
+    expect_equal(length(splice.cigar(reads= read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))), 2054)
+
 
 })
 
@@ -443,6 +471,9 @@ test_that('varcount', {
     expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), max.depth = 100)$counts[1], 160)
     ## indel
     expect_equal(varcount(small_MD_bam, gr= GRanges('1:10075-10100'), indel=TRUE)$gr, NULL)
+    ## if (any(!file.exists(bami)))
+    ##  Error: one or more BAM file indices missing
+    expect_error(varcount(noindexbam, gr= GRanges('1:10075-10100')))
 
 })
 
@@ -481,6 +512,12 @@ test_that('varcount', {
 test_that('mafcount', {
     
     expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103) 
+    ## include normal BAM
+    ## if (!is.null(norm.bam)){
+    expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103)
+    ##  if (is.data.frame(maf)){
+    ##  strange error here...
+    ## expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = as.data.frame(dt2gr(fread(mafpath))))), 54103)
 
 })
 
