@@ -1661,7 +1661,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 
     ### write check if only NA's
     if (all(is.na(tmp))){
-        return(Granges()) ### return empty GRanges
+        return(GRanges()) ### return empty GRanges
     } else{
         maf$alt.count.t = tmp[,1]
         maf$ref.count.t = tmp[,2]
