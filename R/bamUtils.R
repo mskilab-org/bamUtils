@@ -1429,15 +1429,15 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
     sls = lapply(bams, seqlengths)
     sl0 = sort(sls[[1]])
     if (length(sls)>1)
-      {
+    {
         for (i in 2:length(sls))
         {
-          if (!identical(sl0, sort(sls[[i]])))
-          {
-            stop('Seqlengths are mismatched between two or more bam files in provided list.  Please check your bam files and ensure they have been defined on identical genomes')
-          }
+            if (!identical(sl0, sort(sls[[i]])))
+            {
+                stop('Seqlengths are mismatched between two or more bam files in provided list.  Please check your bam files and ensure they have been defined on identical genomes')
+            }
         }
-      }
+    }
     
 
     ix = as.logical(as.character(seqnames(gr)) %in% seqlevels(bams))
