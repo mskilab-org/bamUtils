@@ -419,17 +419,18 @@ test_that('bamtag', {
 
 test_that('countCigar', {
 
-    expect_warning(countCigar(example_bam))   ### should be warning message: 'Warning message: In countCigar(example_bam) : NAs introduced by coercion'
-    expect_equal(dim(countCigar(example_bam))[1], 1)
-    expect_equal(dim(countCigar(example_bam))[2], 4)
-    expect_match(colnames(countCigar(example_bam))[1], "D")
-    expect_match(colnames(countCigar(example_bam))[2], "I")
-    expect_match(colnames(countCigar(example_bam))[3], "M")
-    expect_match(colnames(countCigar(example_bam))[4], "S")
-    expect_equal(countCigar(example_bam)[1], 0)
-    expect_equal(countCigar(example_bam)[2], 0)
-    expect_equal(countCigar(example_bam)[3], 0)
-    expect_equal(countCigar(example_bam)[4], 0)
+    empty_string = 'foobar'
+    expect_warning(countCigar(empty_string))   ### should be warning message: 'Warning message: In countCigar(example_bam) : NAs introduced by coercion'
+    expect_equal(dim(countCigar(empty_string))[1], 1)
+    expect_equal(dim(countCigar(empty_string))[2], 4)
+    expect_match(colnames(countCigar(empty_string))[1], "D")
+    expect_match(colnames(countCigar(empty_string))[2], "I")
+    expect_match(colnames(countCigar(empty_string))[3], "M")
+    expect_match(colnames(countCigar(empty_string))[4], "S")
+    expect_equal(countCigar(empty_string)[1], 0)
+    expect_equal(countCigar(empty_string)[2], 0)
+    expect_equal(countCigar(empty_string)[3], 0)
+    expect_equal(countCigar(empty_string)[4], 0)
 
 })
 
