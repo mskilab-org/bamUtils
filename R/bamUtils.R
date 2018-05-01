@@ -36,7 +36,7 @@
 #' @export
 read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     bai = NULL,
-                    pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
+                    pairs.grl = FALSE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
                                         ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
                                         ##  gappedAlignment = T, # if false just read alignments using scanbam
                     stripstrand = TRUE,
@@ -58,6 +58,9 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     ... ## passed to scanBamFlag (
                     )
 {
+
+    ## check that the BAM is valid
+
     if (!inherits(bam, 'BamFile'))
     {
         if (is.null(bai))
@@ -296,7 +299,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
         stop("Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.")
     }
 
-    if (is.character(bam))
+    if (is.character(bam)){
         if (!is.null(bai)){
             bam = BamFile(bam, bai)
         } else{
@@ -308,6 +311,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
                 stop('Error: BAM index not found, please find index and specify BAM file argument as valid BamFile object. Please see documentation for details.')
             }
         }
+    }
 
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
@@ -1535,6 +1539,10 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 #' @export
 mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, ...)
 {
+
+    ## check tumor BAM is valid
+
+
 
     if (is.character(tum.bam)){
         tum.bam = BamFile(tum.bam)

@@ -5,7 +5,7 @@
 \title{Read BAM file into GRanges or data.table}
 \usage{
 read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
-  pairs.grl = TRUE, stripstrand = TRUE, what = scanBamWhat(),
+  pairs.grl = FALSE, stripstrand = TRUE, what = scanBamWhat(),
   unpack.flag = FALSE, verbose = FALSE, tag = NULL, isPaired = NA,
   isProperPair = NA, isUnmappedQuery = NA, hasUnmappedMate = NA,
   isNotPassingQualityControls = NA, isDuplicate = FALSE,
