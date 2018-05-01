@@ -1215,7 +1215,6 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
 #' Shortcut function: assumes reads are GappedAlignments with flag variable or actual integers representing BAM flag
 #'
 #' @param reads GenomicRanges or 'GappedAlignments' or data.table holding the reads
-#' @name bamflag
 #' @return matrix of bits from BAM flags
 #' @export
 bamflag = function(reads)
