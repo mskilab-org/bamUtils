@@ -36,7 +36,7 @@
 #' @export
 read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     bai = NULL,
-                    pairs.grl = FALSE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
+                    pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
                                         ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
                                         ##  gappedAlignment = T, # if false just read alignments using scanbam
                     stripstrand = TRUE,
