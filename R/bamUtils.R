@@ -60,6 +60,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 {
 
     ## check that the BAM is valid
+    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
 
     if (!inherits(bam, 'BamFile'))
     {
@@ -295,6 +299,13 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
+
+    ## check that the BAM is valid
+    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
+
     if (missing(bam) | missing(intervals)){
         stop("Error: arguments 'bam' and 'intervals' are both required for 'bam.cov.gr'. Please see documentation for details.")
     }
@@ -380,6 +391,13 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE, bai = NULL)
 {
+
+    ## check that the BAM is valid
+    check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
+
     cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
     sl = seqlengths(BamFile(bam.file))
@@ -1543,8 +1561,11 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, ...)
 {
 
-    ## check tumor BAM is valid
-
+    ## check that the tumor BAM is valid
+    check_valid_bam = readChar(gzfile(tum.bam, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
 
 
     if (is.character(tum.bam)){
