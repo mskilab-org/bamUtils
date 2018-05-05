@@ -120,7 +120,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
     tag = unique(c('MD', 'MQ', tag))
 
-    param = ScanBamParam(which = gr.fix(intervals, bam, drop = T), what = what, flag = flag, tag = tag)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag)
 
     if (verbose){
         cat('Reading bam file\n')
@@ -137,6 +137,9 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     }
 
     out <- out[sapply(out, function(x) length(x$qname)>0)]
+    ## names(out[[1]])
+    ## [1] "qname"  "flag"   "rname"  "strand" "pos"    "qwidth" "mapq"   "cigar" 
+    ## [9] "mrnm"   "mpos"   "isize"  "seq"    "qual"   "tag"  
 
     if (length(out)>0)
     {
