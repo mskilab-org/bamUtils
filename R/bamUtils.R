@@ -1561,12 +1561,6 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, ...)
 {
 
-    ## check that the tumor BAM is valid
-    check_valid_bam = readChar(gzfile(tum.bam, 'r'), 4)
-    if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
-    }
-
 
     if (is.character(tum.bam)){
         tum.bam = BamFile(tum.bam)
