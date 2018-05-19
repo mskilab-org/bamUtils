@@ -129,10 +129,11 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     if (verbose){
         cat('Reading bam file\n')
     }
-    if (class(bam) == 'BamFile'){
-        out <- scanBam(bam, param=param)
+
+  if (class(bam) == 'BamFile'){
+        out <- suppressWarnings(scanBam(bam, param=param))
     } else{
-        out <- scanBam(bam, index=bai, param=param)
+        out <- suppressWarnings(scanBam(bam, index=bai, param=param))
     }
 
     if (verbose) {
@@ -264,6 +265,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
             values(out)$border = 'gray';
         }
     }
+
     return(out)
 }
 
