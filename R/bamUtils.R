@@ -60,10 +60,12 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 {
 
     ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
+    check_gz = gzfile(bam_file, 'r')
+    check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+        stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
     }
+    on.exit(close(check_gz))
 
     if (!inherits(bam, 'BamFile'))
     {
@@ -303,10 +305,13 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 {
 
     ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
+    check_gz = gzfile(bam_file, 'r')
+    check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+        stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
     }
+    on.exit(close(check_gz))
+
 
     if (missing(bam) | missing(intervals)){
         stop("Error: arguments 'bam' and 'intervals' are both required for 'bam.cov.gr'. Please see documentation for details.")
@@ -395,10 +400,13 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 {
 
     ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam.file, 'r'), 4)
+    check_gz = gzfile(bam_file, 'r')
+    check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+        stop("Cannot open BAM. A valid BAM for 'bam.file' must be provided.")
     }
+    on.exit(close(check_gz))
+
 
     cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
 
