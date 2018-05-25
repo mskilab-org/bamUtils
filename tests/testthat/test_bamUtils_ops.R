@@ -43,6 +43,8 @@ noindexbam = 'bam_noindex.bam'
 test_that('read.bam', {
     
     ## default
+    ##   Cannot open BAM. A valid BAM for 'bam' must be provided.
+    expect_error(read.bam('fake_bam.txt'))
     expect_error(read.bam(example_bam))  ## Error in read.bam(example_bam) : Must provide non empty interval list
     expect_error(read.bam(noindexbam, all=TRUE)) ## Error in value[[3L]](cond) : valid 'index' file required
     ## test 'all' FLAG
@@ -128,6 +130,8 @@ test_that('read.bam', {
 ### bam.cov.gr
 test_that('bam.cov.gr', {
 
+    ## Cannot open BAM. A valid BAM for 'bam' must be provided.
+    expect_error(bam.cov.gr('fake_bam.txt'))
     ## if (missing(bam) | missing(intervals)){
     expect_error(bam.cov.gr())
     expect_error(bam.cov.gr(example_bam, intervals=NULL))  ##  Error: Granges of intervals to retrieve 'intervals' must be in the format 'GRanges'. Please see documentation for details.
@@ -174,6 +178,8 @@ test_that('bam.cov.gr', {
 
 test_that('bam.cov.tile', {
 
+    ## Cannot open BAM. A valid BAM for 'bam.file' must be provided.
+    expect_error(bam.cov.tile('fake_bam.txt'))
     ## expect_equal(length(bam.cov.tile(example_bam)), 31018086)  ## Travis complains: cannot allocate vector of size 3.4 Gb
     ## window
     expect_equal(length(bam.cov.tile(example_bam, window=1e7)), 382)
