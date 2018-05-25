@@ -60,7 +60,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 {
 
     ## check that the BAM is valid
-    check_gz = gzfile(bam_file, 'r')
+    check_gz = gzfile(bam, 'r')
     check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
@@ -305,7 +305,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 {
 
     ## check that the BAM is valid
-    check_gz = gzfile(bam_file, 'r')
+    check_gz = gzfile(bam, 'r')
     check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
@@ -400,7 +400,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 {
 
     ## check that the BAM is valid
-    check_gz = gzfile(bam_file, 'r')
+    check_gz = gzfile(bam.file, 'r')
     check_valid_bam = readChar(check_gz, 4)
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam.file' must be provided.")
