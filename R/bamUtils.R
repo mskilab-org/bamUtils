@@ -1408,6 +1408,161 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 
 
 
+
+#' @name qual.parse
+#' @title qual.parse
+#' @description
+#'
+#' Returns GRangesList (of same length as input) of subsets of reads matching
+#' input targets with character vector $qual of quality score in reads corresponding
+#' to the appropriate base(s)
+#'
+#' @param reads GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from
+#' @param targets GenomicRanges of sites to pull out quality scores from reads
+#' #' @export
+qual.parse = function(reads, targets){
+    nreads = length(reads)
+    if (inherits(reads, 'GRangesList')){
+        was.grl = TRUE
+        r.id = grl.unlist(reads)$grl.ix
+        reads = unlist(reads)
+    } else if (inherits(reads, 'data.frame')){
+        r.id = 1:nrow(reads)
+        nreads = nrow(reads)
+        was.grl = FALSE
+    } else{
+        r.id = 1:length(reads)
+        was.grl = FALSE
+    }
+
+    if (!inherits(reads, 'GRanges') & !inherits(reads, 'GappedAlignments') & !inherits(reads, 'data.frame')  & !inherits(reads, 'data.table')){
+        stop('Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.')
+    }
+
+    if (is.data.frame(reads)){
+        sl = NULL
+        sn =  reads$seqnames
+        cigar = as.character(reads$cigar)
+        seq = as.character(reads$seq)
+        qual = as.character(reads$qual)
+        str = reads$strand
+    } else{
+        sl = seqlengths(reads)
+        sn =  seqnames(reads)
+        cigar = as.character(values(reads)$cigar)
+        seq = as.character(values(reads)$seq)
+        qual = as.character(values(reads)$qual)                
+        str = as.character(strand(reads))
+    }
+
+    if (!inherits(cigar, 'character')){
+        stop('Error: Input must be GRanges with seq and cigar fields populated or GappedAlignments object. Please see documentation for details.')
+    }
+
+    ix = which(!is.na(cigar))
+
+    if (length(ix)==0){
+        return(rep(GRangesList(GRanges()), nreads))
+    }
+
+    t.ov = gr.findoverlaps(reads, targets)
+    t.ov$query.id = factor(t.ov$query.id, 1:nreads)
+    t.ov = t.ov[width(t.ov) == width(targets[t.ov$subject.id])]
+    t.ov = split(t.ov, t.ov$query.id)
+    
+    cigar = cigar[ix]
+    seq = seq[ix]
+    qual = qual[ix]
+    str = str[ix]
+
+    if (is.data.frame(reads)){
+        r.start = reads$start[ix]
+        r.end = reads$end[ix]
+    } else{
+        r.start = start(reads)[ix]
+        r.end = end(reads)[ix]
+    }
+
+    if (!is.null(seq)){
+        nix = sapply(seq, function(x) all(is.na(x)))
+        if (any(nix)){
+            seq[nix] = ''
+        }
+        seq = strsplit(seq, '')
+        nix = sapply(qual, function(x) all(is.na(x)))
+        if (any(nix)){
+            qual[nix] = ''
+        }
+        qual = strsplit(qual, '')
+    }
+
+    cigar.vals = explodeCigarOps(cigar)
+    cigar.lens = explodeCigarOpLengths(cigar)
+
+    clip.left = sapply(cigar.vals, function(x) x[1] %in% c('H', 'S'))
+    clip.right = sapply(cigar.vals, function(x) x[length(x)] %in% c('H', 'S'))
+
+    if (any(clip.left)){
+        r.start[clip.left] = r.start[clip.left]-sapply(cigar.lens[which(clip.left)], function(x) x[1])
+    }
+
+    if (any(clip.right)){
+        r.end[clip.right] = r.end[clip.right]+sapply(cigar.lens[which(clip.right)], function(x) x[length(x)])
+    }
+
+    ## ranges of different cigar elements relative to query ie read-centric coordinates
+    starts.seq = lapply(1:length(cigar.lens), function(i){
+        x = c(0, cigar.lens[[i]])
+        x[which(cigar.vals[[i]] %in% c('D', 'H', 'N'))+1] = 0  ## deletions have 0 width on query
+        cumsum(x[1:(length(x)-1)])+1
+    })
+
+    ## ranges of different cigar elements relative to reference coordinatse
+    starts.ref = lapply(1:length(cigar.lens), function(i){
+        x = c(0, cigar.lens[[i]]);
+        x[which(cigar.vals[[i]] %in% c('I'))+1] = 0 ## insertions have 0 width on reference / subject
+        cumsum(x[1:(length(x)-1)]) + r.start[i]
+    })
+
+    ix0 = which(elementNROWS(t.ov) > 0)
+    ix0 = ix0[ix0 %in% ix]
+    out.grl = lapply(ix0, function(i){
+        x = t.ov[[i]]
+        if(length(x)==0){
+            values(x)$qual=character()
+            values(x)$base=character()
+            return(x)
+        }
+        s.ref = start(x) ## ref coordinates to match in read
+        s.ref.r = starts.ref[[i]]  ## read-based ref coordinate of mapped read portions
+        s.r.r = starts.seq[[i]]  ## position of start of mapped portions in read
+        r.pos.s = sapply(s.ref, function(s){
+            iix = which.max(s.ref.r[s.ref.r<=s])
+            off = s - max(s.ref.r[s.ref.r<=s])
+            s.r.r[iix]+off
+        })
+        r.pos.e = r.pos.s + width(x) - 1
+
+        r.seq = sapply(1:length(r.pos.s), function(j){
+            seq[[i]][r.pos.s[j]:r.pos.e[j]]
+        })
+        r.qual = sapply(1:length(r.pos.s), function(j){
+            qual[[i]][r.pos.s[j]:r.pos.e[j]]
+        })
+        values(x)$base = r.seq
+        values(x)$qual = r.qual
+        return(x)
+    })
+
+    og = unlist(GRangesList(out.grl)) ## slow
+    og$rix = factor(as.integer(names(og)), 1:nreads)
+    out.grl = GenomicRanges::split(unname(og[,c("query.id","subject.id","base","qual")]), og$rix)
+    
+    return(out.grl)
+}
+
+
+
 #' @name varcount
 #' @title Wrapper around applyPileups
 #' @description 
