@@ -1419,7 +1419,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 #'
 #' @param reads GenomicRanges or GRangesList or GappedAlignments or data.frame/data.table reads to extract variants from
 #' @param targets GenomicRanges of sites to pull out quality scores from reads
-#' #' @export
+#' @export
 qual.parse = function(reads, targets){
     nreads = length(reads)
     if (inherits(reads, 'GRangesList')){
@@ -1466,15 +1466,11 @@ qual.parse = function(reads, targets){
     }
 
     t.ov = gr.findoverlaps(reads, targets)
-    t.ov$query.id = factor(t.ov$query.id, 1:nreads)
+    if(length(t.ov) == 0){
+        return(rep(GRangesList(GRanges()), nreads))
+    }
     t.ov = t.ov[width(t.ov) == width(targets[t.ov$subject.id])]
-    t.ov = split(t.ov, t.ov$query.id)
     
-    cigar = cigar[ix]
-    seq = seq[ix]
-    qual = qual[ix]
-    str = str[ix]
-
     if (is.data.frame(reads)){
         r.start = reads$start[ix]
         r.end = reads$end[ix]
@@ -1524,39 +1520,17 @@ qual.parse = function(reads, targets){
         cumsum(x[1:(length(x)-1)]) + r.start[i]
     })
 
-    ix0 = which(elementNROWS(t.ov) > 0)
-    ix0 = ix0[ix0 %in% ix]
-    out.grl = lapply(ix0, function(i){
-        x = t.ov[[i]]
-        if(length(x)==0){
-            values(x)$qual=character()
-            values(x)$base=character()
-            return(x)
-        }
-        s.ref = start(x) ## ref coordinates to match in read
-        s.ref.r = starts.ref[[i]]  ## read-based ref coordinate of mapped read portions
-        s.r.r = starts.seq[[i]]  ## position of start of mapped portions in read
-        r.pos.s = sapply(s.ref, function(s){
-            iix = which.max(s.ref.r[s.ref.r<=s])
-            off = s - max(s.ref.r[s.ref.r<=s])
-            s.r.r[iix]+off
-        })
-        r.pos.e = r.pos.s + width(x) - 1
+    ## query.id is the read; subject.id is the var
+    ## i in loop over reads = query.id
+    t.dt = gr2dt(t.ov)[, r.pos.s := starts.seq[[query.id]][which.max(starts.ref[[query.id]][starts.ref[[query.id]]<=start])]+(start - max(starts.ref[[query.id]][starts.ref[[query.id]]<=start])), by=c("query.id", "subject.id")]
+    t.dt[, r.pos.e := r.pos.s + width - 1]
+    t.dt[, ":="(
+        base = seq[[query.id]][r.pos.s:r.pos.e],
+        qual = qual[[query.id]][r.pos.s:r.pos.e]), by=c("query.id", "subject.id")]
+    og = dt2gr(t.dt[, c("r.pos.s", "r.pos.e"):=NULL])
 
-        r.seq = sapply(1:length(r.pos.s), function(j){
-            seq[[i]][r.pos.s[j]:r.pos.e[j]]
-        })
-        r.qual = sapply(1:length(r.pos.s), function(j){
-            qual[[i]][r.pos.s[j]:r.pos.e[j]]
-        })
-        values(x)$base = r.seq
-        values(x)$qual = r.qual
-        return(x)
-    })
-
-    og = unlist(GRangesList(out.grl)) ## slow
-    og$rix = factor(as.integer(names(og)), 1:nreads)
-    out.grl = GenomicRanges::split(unname(og[,c("query.id","subject.id","base","qual")]), og$rix)
+    og$query.id = factor(og$query.id, 1:nreads)
+    out.grl = GenomicRanges::split(unname(og[,c("query.id","subject.id","base","qual")]), og$query.id)
     
     return(out.grl)
 }
