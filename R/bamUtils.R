@@ -1529,8 +1529,7 @@ qual.parse = function(reads, targets){
         qual = qual[[query.id]][r.pos.s:r.pos.e]), by=c("query.id", "subject.id")]
     og = dt2gr(t.dt[, c("r.pos.s", "r.pos.e"):=NULL])
 
-    og$query.id = factor(og$query.id, 1:nreads)
-    out.grl = GenomicRanges::split(unname(og[,c("query.id","subject.id","base","qual")]), og$query.id)
+    out.grl = GenomicRanges::split(unname(og[,c("query.id","subject.id","base","qual")]), factor(og$query.id, 1:nreads))
     
     return(out.grl)
 }
