@@ -1506,7 +1506,8 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
     }
 
     if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
-        bam.paths = Rsamtools::path(bams)
+        ## xt 6/12, "path" is no longer exported from Rsamtools, use from BiocGenerics
+        bam.paths = BiocGenerics::path(bams)
     } else if (is(bams, 'BamFileList')){
         bam.paths = sapply(bams, path)
     } else if (is(bams, 'list')){
