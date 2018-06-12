@@ -298,10 +298,10 @@ test_that('varbase', {
 
 
 
-gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))
+## gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))
 
 
-as.data.frame(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[2]]))
+## as.data.frame(gr2dt(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[2]]))
 
 
 test_that('splice.cigar', {
