@@ -60,12 +60,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 {
 
     ## check that the BAM is valid
-    check_gz = gzfile(bam, 'r')
-    check_valid_bam = readChar(check_gz, 4)
+    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
     if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
     }
-    on.exit(close(check_gz))
 
     if (!inherits(bam, 'BamFile'))
     {
@@ -204,10 +202,9 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
         }
 
-
         cigs <- countCigar(out$cigar)
-        # out$pos2 <- out$pos + cigs[, "M"]
-        out$pos2 <- out$pos + rowSums(cigs[, c("D", "M")], na.rm=T) - 1
+        ## out$pos2 <- out$pos + rowSums(cigs[, c("D", "M", "N"), drop = FALSE], na.rm=T) - 1
+        out$pos2 <- out$pos + pmax(rowSums(cigs[, c("D", "M", "N"), drop = FALSE], na.rm=T) - 1, 0)
 
         if (verbose) {
             print(Sys.time() - now)
@@ -270,7 +267,6 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
     return(out)
 }
-
 
 
 
