@@ -24,7 +24,7 @@ splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
 }
 \description{
 Takes GRanges or GappedAlignments object "reads" and parses cigar fields
-to return GRanges or GRangesList corresponding to spliced alignments on the genome, which 
+to return GRanges or GRangesList corresponding to spliced alignments on the genome, which
 correspond to portions of the cigar
 
 i.e. each outputted GRanges/GRangesList element contains the granges corresponding to all non-N portions of cigar string

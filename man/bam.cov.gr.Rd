@@ -44,7 +44,7 @@ GRanges parallel to input GRanges, but with metadata filled in.
 }
 \description{
 Gets coverage from BAM in supplied GRanges using 'countBam()', returning GRanges with coverage counts in
-each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the 
+each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the
 columns $file, $records, and $nucleotides in the values field
 
 Basically a wrapper for 'Rsamtools::countBam()' with some standard settings for 'Rsamtools::ScanBamParams()'

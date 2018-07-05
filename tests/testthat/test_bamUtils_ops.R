@@ -8,24 +8,24 @@ context("test bamUtils on fake BAM, 'small.bam' and index 'small.bam.bai' ")
 ## 'small.bam' created via chromosome 22 in HCC1143 BL
 ## $ samtools view -H HCC1143_BL_phased_possorted.bam > header_HCC1143_BL_phased_possorted.sam
 ## $ samtools view HCC1143_BL_phased_possorted.bam  | grep "chr22" | cat  header_HCC1143_BL_phased_possorted.sam  - | samtools view -Sb - > chr22.unique.bam  ## keeps header
-## $ samtools view -h chr22.unique.bam | head -n 100000 > small.sam 
+## $ samtools view -h chr22.unique.bam | head -n 100000 > small.sam
 ## $ samtools view -S -b small.sam > small.bam
 ## $ samtools index small.bam
 
-##example_bam = 'small.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-##example_bai = 'small.bam.bai' 
+##example_bam = 'small.bam'   ### all tests below are specific to this BAM, and will fail otherwise
+##example_bai = 'small.bam.bai'
 
-example_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-example_bai = 'smallHCC1143BL.bam.bai' 
+example_bam = 'smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise
+example_bai = 'smallHCC1143BL.bam.bai'
 
 small_MD_bam = 'smallHCC1143BL.filtered.MD.bam'
 small_MD_bai = 'smallHCC1143BL.filtered.MD.bam.bai'
 
-## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
+## example_bam = './tests/testthat/smallHCC1143BL.bam'   ### all tests below are specific to this BAM, and will fail otherwise
 ## example_bai = './tests/testthat/smallHCC1143BL.bam.bai'
 
-tumor_bam = 'HCC1143.final.subset.bam'   ### all tests below are specific to this BAM, and will fail otherwise 
-tumor_bai = 'HCC1143.final.subset.bam.bai' 
+tumor_bam = 'HCC1143.final.subset.bam'   ### all tests below are specific to this BAM, and will fail otherwise
+tumor_bai = 'HCC1143.final.subset.bam.bai'
 
 small_reference = 'chr1_human_g1k_v37_decoy.subset.fasta'
 
@@ -41,7 +41,6 @@ noindexbam = 'bam_noindex.bam'
 
 
 test_that('read.bam', {
-    
     ## default
     ##   Cannot open BAM. A valid BAM for 'bam' must be provided.
     expect_error(read.bam('fake_bam.txt'))
@@ -49,33 +48,33 @@ test_that('read.bam', {
     expect_error(read.bam(noindexbam, all=TRUE)) ## Error in value[[3L]](cond) : valid 'index' file required
     ## test 'all' FLAG
     expect_equal(length(read.bam(example_bam, all=TRUE)), 4999)   ## read in entire BAM
-    expect_equal(length(read.bam(small_MD_bam, all=TRUE)), 19089)     
+    expect_equal(length(read.bam(small_MD_bam, all=TRUE)), 19089)
     expect_false(is(read.bam(example_bam, all=TRUE), 'GenomicRanges'))   ## check that output is "GRanges" if as.data.table == FALSE (default)
-    expect_true(is(read.bam(example_bam, all=TRUE), 'GRangesList')) 
+    expect_true(is(read.bam(example_bam, all=TRUE), 'GRangesList'))
     expect_equal(ncol(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 16) ## data.table == NULL, should have ncol == 16
-    expect_equal(nrow(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 9998) 
-    expect_true(is(read.bam(example_bam, all=TRUE, as.data.table=TRUE), 'data.table'))  
+    expect_equal(nrow(read.bam(example_bam, all=TRUE, as.data.table=TRUE)), 9998)
+    expect_true(is(read.bam(example_bam, all=TRUE, as.data.table=TRUE), 'data.table'))
     ## ignore.indels
     expect_equal(length(read.bam(example_bam, all=TRUE, ignore.indels=TRUE)), 4999)
     ## check GRanges for 'intervals' whereby intervals to retrieve overlap BAM reads
     ## check 'chr##' vs. '##' error
     expect_error(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))) ## Error in GenomeInfoDb:::getDanglingSeqlevels()
-    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))), 1027) 
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))), 1027)
     expect_equal(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]$flag[1], 163)  ## same results with all=TRUE
     ## expect_equal(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'))$flag[2], 113)  ## same results with all=FALSE
     expect_match(read.bam(example_bam, intervals = GRanges('1:10075-10100'))[[1]]$cigar[1], '2S6M1I63M1I8M1I8M11S')
     ## check GRanges for 'intervals' whereby intervals to retrieve DO NOT overlap BAM reads
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:500-750'))), 0) 
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:500-750'))), 0)
     ## check 'stripstrand' 10K to 27K
     expect_match(as.character( strand(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10000-27000', strand = "+"), stripstrand = FALSE)[[1]][1])), '+')
-    expect_match(as.character( strand(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10000-27000', strand = "+"), stripstrand = FALSE)[[1]][2])), '-')    
+    expect_match(as.character( strand(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10000-27000', strand = "+"), stripstrand = FALSE)[[1]][2])), '-')
     ## issue with 'what'
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), what='qwidth')
     ## read.bam(example_bam, all=FALSE, intervals = GRanges('chr1:10075-10100'), what='MD')  ## error, https://www.rdocumentation.org/packages/Rsamtools/versions/1.24.0/topics/BamInput
     ## verbose
-    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027) 
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027)
     ## if (inherits(intervals, 'GRangesList')){
-    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = grl2, verbose=TRUE)), 0) 
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = grl2, verbose=TRUE)), 0)
     ## if (class(intervals) == 'data.frame'){
     expect_equal(length(read.bam(example_bam, all=TRUE, intervals = as.data.frame(gr2dt(GRanges('1:10075-10100'))), verbose=TRUE)), 1027)
     ## check 'tag' works correctly
@@ -106,13 +105,13 @@ test_that('read.bam', {
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = FALSE)), 1027)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = TRUE)), 90)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = FALSE)), 4999)
-    ## 'isNotPassingQualityControls' 
+    ## 'isNotPassingQualityControls'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = 'foo'))  ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)), 0)
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = FALSE)), 1027)
     expect_equal(length(read.bam(example_bam, all = TRUE, isNotPassingQualityControls = TRUE)), 0)
     expect_equal(length(read.bam(example_bam, all = TRUE, isNotPassingQualityControls = FALSE)), 4999)
-    ## 'isDuplicate' 
+    ## 'isDuplicate'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = 'foo'))  ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)), 147)
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = FALSE)), 1027)
@@ -148,29 +147,29 @@ test_that('bam.cov.gr', {
     ## count.all
     expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$records, 1372)
     expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$nucleotides, 138572)
-    ## isPaired 
+    ## isPaired
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)
     ## isProperPair
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$records), 77)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)$nucleotides), 7777)
-    ## isUnmappedQuery 
+    ## isUnmappedQuery
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)$nucleotides), 0)
-    ## hasUnmappedMate 
+    ## hasUnmappedMate
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)$nucleotides), 0)
     ## isNotPassingQualityControls turned. See documentation for Rsamtools::scanBamFlag(). (default == NA)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls= TRUE)$nucleotides), 0)
-    ## isDuplicate 
+    ## isDuplicate
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$records), 98)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)$nucleotides), 9898)
-    ## mc.cores 
+    ## mc.cores
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), mc.cores = 2)), 26)
-    ## chunksize 
+    ## chunksize
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), chunksize = 1)), 26)
-    ## 
+    ##
 
 })
 
@@ -217,12 +216,12 @@ test_that('bam.cov.tile', {
 test_that('get.mate.gr', {
 
     expect_equal(width(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]), 101)
-    expect_equal(width(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]), 101)   
+    expect_equal(width(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]), 101)
     expect_match(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]$qname, 'C1Y1JACXX130321:7:1101:13020:82300')
     expect_equal(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[1]$mapq, 6)
     expect_match(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]$qname, 'C1Y1JACXX130321:7:1101:13020:82300')
     expect_equal(get.mate.gr(read.bam(example_bam, all=TRUE)[[1]])[2]$mapq, 29)
-    
+
 })
 
 
@@ -234,7 +233,7 @@ test_that('get.pairs.grl', {
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'), TRUE)
     ## pairs.grl.split
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], pairs.grl.split=FALSE, verbose=TRUE), 'GRanges'), TRUE)
-    ## verbose 
+    ## verbose
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE), 'GRangesList'))
     expect_true(is(get.pairs.grl(read.bam(example_bam, all=TRUE)[[1]], verbose=TRUE, pairs.grl.split=FALSE), 'GRanges'), TRUE)
     ## if (is(reads, 'GappedAlignmentPairs')){
@@ -269,23 +268,23 @@ test_that('varbase', {
     expect_true(is(varbase(read.bam(example_bam, all=TRUE)[[1]]), 'GRangesList'))
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
     expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varbase)[1], 'TAACCCCAACCAAAACCGCCCAACCCTAA')
-    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varbase)[2], 'C')    
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varbase)[2], 'C')
     expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varlen[1]), 29)
     expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$varlen[2]), 1)
     expect_equal(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$type)[1], 'S')
     expect_equal(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$type)[2], 'X')
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
     expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$col)[1], '#FFC0CBE6')
-    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$col)[2], 'blue')    
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$col)[2], 'blue')
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]])), 2)
     expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$border)[1], '#FFC0CBE6')
-    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$border)[2], 'blue')   
-    ## soft   
+    expect_match(as.character(varbase(read.bam(example_bam, all=TRUE)[[1]])[[1]]$border)[2], 'blue')
+    ## soft
     expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$varbase, 'C')
     expect_equal(as.integer(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$varlen), 1)
     expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$type, 'X')
     expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$col, 'blue')
-    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$border, 'blue')    
+    expect_match(varbase(read.bam(example_bam, all=TRUE)[[1]], soft=FALSE)[[1]]$border, 'blue')
     ## verbose
     expect_equal(length(varbase(read.bam(example_bam, all=TRUE)[[1]], verbose=FALSE)), 2)
     ## if (inherits(reads, 'GRangesList')){
@@ -309,11 +308,11 @@ test_that('splice.cigar', {
     expect_error(splice.cigar('foo'))
     expect_error(splice.cigar(example_bam)) ##  Error: Reads must be either GRanges, GRangesList, GappedAlignments, or data.table object. Please see documentation for details.
     ## check default
-    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))), 2054) 
-    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]), 9)  
-    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[2]]), 0)  
-    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[1], 'S') 
-    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[2], 'M') 
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))), 2054)
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]), 9)
+    expect_equal(length(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[2]]), 0)
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[1], 'S')
+    expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[2], 'M')
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[3], 'I')
     expect_match(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]]$type[4], 'M')
     expect_equal(width(splice.cigar(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100')))[[1]])[1], 0)
@@ -362,34 +361,34 @@ test_that('bamflag', {
     ## isPaired  1 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isPaired[1], 1)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isPaired[2], 0)
-    ## isProperPair  1 0 
+    ## isProperPair  1 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isProperPair[1], 1)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isProperPair[2], 0)
-    ## isUnmappedQuery  0 0 
+    ## isUnmappedQuery  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isUnmappedQuery[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isUnmappedQuery[2], 0)
-    ## hasUnmappedMate  0 0 
+    ## hasUnmappedMate  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$hasUnmappedMate[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$hasUnmappedMate[2], 0)
-    ## isMinusStrand  1 1 
+    ## isMinusStrand  1 1
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isMinusStrand[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isMinusStrand[2], 0)
-    ## isMateMinusStrand  1 0 
+    ## isMateMinusStrand  1 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isMateMinusStrand[1], 1)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isMateMinusStrand[2], 0)
-    ## isFirstMateRead  0 0 
+    ## isFirstMateRead  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isFirstMateRead[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isFirstMateRead[2], 0)
-    ## isSecondMateRead  1 0 
+    ## isSecondMateRead  1 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isSecondMateRead[1], 1)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isSecondMateRead[2], 0)
     ## isNotPrimaryRead  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isNotPrimaryRead[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isNotPrimaryRead[2], 0)
-    ## isNotPassingQualityControls  0 0 
+    ## isNotPassingQualityControls  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isNotPassingQualityControls[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isNotPassingQualityControls[2], 0)
-    ## isDuplicate  0 0 
+    ## isDuplicate  0 0
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isDuplicate[1], 0)
     expect_equal(as.data.frame(bamflag(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))[[1]]))$isDuplicate[2], 0)
     ## isSupplementary  0 0
@@ -407,8 +406,8 @@ test_that('bamtag', {
     expect_error(bamtag(example_bam))    ### Error: Reads must be either GRanges, GRangesList, or GappedAlignments object. Please see documentation for details.
     ## default
     ### FAILS AT GRANGELIST: WHY? cf read.bam()
-    ## expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('1:10075-10100')))[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1__') 
-    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('1:10075-10100'))[[1]])[1], 'C1Y1JACXX130321:7:1101:15151:82244_2__')   
+    ## expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('1:10075-10100')))[1], 'ST-K00126:3:H5TL3BBXX:1:1127:17310:39893_1__')
+    expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('1:10075-10100'))[[1]])[1], 'C1Y1JACXX130321:7:1101:15151:82244_2__')
     ## 'secondary' == TRU#
     expect_equal(bamtag(read.bam(example_bam, all = TRUE, intervals = GRanges('1:10075-10100'))[[1]], secondary = TRUE)[1], 'C1Y1JACXX130321:7:1101:15151:82244_2__0')
     ## 'gr.string' == TRUE
@@ -420,31 +419,17 @@ test_that('bamtag', {
 
 })
 
-
-
-
 test_that('countCigar', {
-
-    empty_string = 'foobar'
-    expect_warning(countCigar(empty_string))   ### should be warning message: 'Warning message: In countCigar(example_bam) : NAs introduced by coercion'
-    expect_equal(dim(countCigar(empty_string))[1], 1)
-    expect_equal(dim(countCigar(empty_string))[2], 4)
-    expect_match(colnames(countCigar(empty_string))[1], "D")
-    expect_match(colnames(countCigar(empty_string))[2], "I")
-    expect_match(colnames(countCigar(empty_string))[3], "M")
-    expect_match(colnames(countCigar(empty_string))[4], "S")
-    expect_equal(countCigar(empty_string)[1], 0)
-    expect_equal(countCigar(empty_string)[2], 0)
-    expect_equal(countCigar(empty_string)[3], 0)
-    expect_equal(countCigar(empty_string)[4], 0)
-
+  cigar = c('43S58M', '66S35M', '31S70M', NA, '58S43M', '24M1D30M47S', '46M55S', '101M', '51S50M', '28M1I28M44S', '27S69M1D5M')
+  res = countCigar(cigar)
+  expect_equal(as.vector(res), c(0, 0, 0, NA, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, NA, 0, 0, 0, 0, 0, 1, 0, 58, 35, 70, NA, 43, 54, 46, 101, 50, 56, 74, 43, 66, 31, NA, 58, 47, 55, 0, 51, 44, 27, 0, 0, 0, NA, 0, 0, 0, 0, 0, 0, 0))
+  expect_equal(dim(res), c(11, 5))
+  expect_equal(colnames(res), c('D', 'I', 'M', 'S', 'N')) 
 })
 
 
-
-
 test_that('is.paired.end', {
-## 
+##
     expect_true(as.logical(is.paired.end(example_bam)))
     expect_true(as.logical(is.paired.end(small_MD_bam)))
     expect_equal(as.logical(is.paired.end('foo')), NA)   ### error checking, should return NA
@@ -489,7 +474,7 @@ test_that('varcount', {
     ## min.baseq
     expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), min.baseq = 1)$counts[1], 529)
     expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), min.baseq = 1)$counts[2], 12)
-    ## max.depth 
+    ## max.depth
     expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), max.depth = 1)$counts[1], 75)
     expect_equal(varcount(example_bam, gr= GRanges('1:10075-10100'), max.depth = 100)$counts[1], 160)
     ## indel
@@ -509,7 +494,7 @@ test_that('varcount', {
 ##test_that('read_vcf', {
 #    ## error
 #    expect_error(read_vcf('foobar'))
-#    ## default 
+#    ## default
 #    expect_equal(length(read_vcf(somatic_vcf)), 60)
 #    expect_equal(length(seqnames(seqinfo(read_vcf(somatic_vcf)))), 84)
 #    ## gr  gr= GRanges('1:10075-10100')
@@ -529,14 +514,14 @@ test_that('varcount', {
 
 ##test_that('write_vcf', {
     ##expect_error(write_vcf(read_vcf(somatic_vcf), filename = './foo.vcf'), NA)  ### just check it runs
-    ## 
+    ##
 ##})
 
 
 
 test_that('mafcount', {
-    
-    expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103) 
+
+    expect_equal(length(mafcount(tumorbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103)
     ## include normal BAM
     ## if (!is.null(norm.bam)){
     expect_equal(length(mafcount(tumorbam, normalbam, chunk.size = 1e5, maf = dt2gr(fread(mafpath)))), 54103)
@@ -548,7 +533,7 @@ test_that('mafcount', {
     ## if (is.null(maf$Reference_Allele)){
     ## if (is.null(maf$Reference_Allele)){
     ## if (!all(is.character(maf$Tumor_Seq_Allele1))){
-    ## if (!all(is.character(maf$Reference_Allele))){                       
+    ## if (!all(is.character(maf$Reference_Allele))){
     ## if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
     maffoo = dt2gr(fread(mafpath))
     maffoo$Tumor_Seq_Allele1 = NULL

@@ -17,8 +17,8 @@ varbase(reads, soft = TRUE, verbose = TRUE)
 Takes GRanges or GappedAlignments object "reads" and uses cigar, MD, seq fields
 to return variant bases and ranges
 
-Returns GRangesList (of same length as input) of variant base positions with character vector 
-$varbase field populated with variant bases for each GRanges item in grl[[k]], 
+Returns GRangesList (of same length as input) of variant base positions with character vector
+$varbase field populated with variant bases for each GRanges item in grl[[k]],
 with the following handling for insertions, deletions, and substitution GRange's:
 
 Substitutions: nchar(gr$varbase) = width(gr) of the corresponding var

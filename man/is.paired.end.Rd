@@ -13,6 +13,6 @@ is.paired.end(bams)
 boolean returns TRUE if BAM file is paired-end, returns FALSE if BAM not paired-end
 }
 \description{
-Check if BAM file is paired-end by using 0x1 flag, 
+Check if BAM file is paired-end by using 0x1 flag,
 pipes to 'samtools' via command line
 }

@@ -16,6 +16,6 @@ GRanges with 'right.clips' and 'left.clips' columns added
 Takes GRanges or GappedAlignments object and uses cigar field (or takes character vector of cigar strings)
 and returns data.frame with fields (for character input)
 $right.clips number of "right" soft clips (e.g. cigar 89M12S)
-$left.clips number of "left" soft clips (e.g. cigar 12S89M), 
+$left.clips number of "left" soft clips (e.g. cigar 12S89M),
 or appends these fields to the reads object
 }

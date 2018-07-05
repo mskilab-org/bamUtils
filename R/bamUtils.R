@@ -4,17 +4,17 @@
 #' @import Rsamtools
 #' @import gUtils
 
- 
+
 #' @name read.bam
 #' @title Read BAM file into GRanges or data.table
-#' @description 
+#' @description
 #'
 #' Wrapper around Rsamtools BAM scanning functions
 #' By default, returns GRangesList of read pairs for which <at least one> read lies in the supplied interval
-#' 
+#'
 #' @param bam string Input BAM file. Advisable to make BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.
 #' @param bai string Input BAM index file.
-#' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file  
+#' @param intervals GRanges of intervals to retrieve. If left unspecified with 'all = TRUE', will try to pull down entire BAM file
 #' @param gr Granges (default = intervals)
 #' @param all boolean Flag to read in all of BAM as a GRanges via `si2gr(seqinfo())` (default = FALSE)
 #' @param pairs.grl boolean Flag if TRUE will return GRangesList of read pairs in which at least one read falls in the supplied interval (default = FALSE)
@@ -58,7 +58,8 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     ... ## passed to scanBamFlag (
                     )
 {
-
+  suppressWarnings(
+    {
     ## check that the BAM is valid
     check_valid_bam = readChar(gzfile(bam, 'r'), 4)
     if (!identical(check_valid_bam, 'BAM\1')){
@@ -131,20 +132,21 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     }
 
   if (class(bam) == 'BamFile'){
-        out <- suppressWarnings(scanBam(bam, param=param))
-    } else{
-        out <- suppressWarnings(scanBam(bam, index=bai, param=param))
-    }
+    out <- scanBam(bam, param=param)
+  } else{
+    out <- scanBam(bam, index=bai, param=param)
+  }
 
-    if (verbose) {
-        print(Sys.time() - now)
-        print('BAM read. Making into data.frame')
-    }
 
-    out <- out[sapply(out, function(x) length(x$qname)>0)]
+  if (verbose) {
+    print(Sys.time() - now)
+    print('BAM read. Making into data.frame')
+  }
+
+  out <- out[sapply(out, function(x) length(x$qname)>0)]
     ## names(out[[1]])
-    ## [1] "qname"  "flag"   "rname"  "strand" "pos"    "qwidth" "mapq"   "cigar" 
-    ## [9] "mrnm"   "mpos"   "isize"  "seq"    "qual"   "tag"  
+    ## [1] "qname"  "flag"   "rname"  "strand" "pos"    "qwidth" "mapq"   "cigar"
+    ## [9] "mrnm"   "mpos"   "isize"  "seq"    "qual"   "tag"
 
     if (length(out)>0)
     {
@@ -154,7 +156,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         }
 
         out <- as.data.frame(rbindlist(lapply(out, function(x){
-            
+
             x <- c(x[-match('tag', names(x))], x$tag)
 
             x <- x[sapply(x, length)>0]
@@ -188,18 +190,18 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
               {
                 cig[ix] <- explodeCigarOps(cigar[ix])        # formerly `cig <- splitCigar(cigar)`, splitCigar() now deprecated
               }
-            torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]=="M"]))))
-            new.cigar <- sapply(cig[torun], function(y) {
-                lets <- y[[1]][!duplicated(y[[1]])]
-                vals <- y[[2]][!duplicated(y[[1]])]
-                vals[lets=="M"] <- sum(y[[2]][y[[1]]=="M"])
-                lets <- strsplit(rawToChar(lets), '')[[1]]
-                paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
-            })
+
+          torun=sapply(cig, function(y) any(duplicated((y[[1]][y[[1]]=="M"]))))
           if (any(torun)){
+            new.cigar <- sapply(cig[torun], function(y) {
+              lets <- y[[1]][!duplicated(y[[1]])]
+              vals <- y[[2]][!duplicated(y[[1]])]
+              vals[lets=="M"] <- sum(y[[2]][y[[1]]=="M"])
+              lets <- strsplit(rawToChar(lets), '')[[1]]
+              paste(as.vector(t(matrix(c(vals, lets), nrow=length(vals), ncol=length(lets)))), collapse='')
+            })
             out$cigar[torun] <- new.cigar
           }
-
         }
 
         cigs <- countCigar(out$cigar)
@@ -264,7 +266,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
             values(out)$border = 'gray';
         }
     }
-
+    })
     return(out)
 }
 
@@ -275,7 +277,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 #' @description
 #'
 #' Gets coverage from BAM in supplied GRanges using 'countBam()', returning GRanges with coverage counts in
-#' each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the 
+#' each of the provided GRanges (different from 'bamUtils::bam.cov()') specified as the
 #' columns $file, $records, and $nucleotides in the values field
 #'
 #' Basically a wrapper for 'Rsamtools::countBam()' with some standard settings for 'Rsamtools::ScanBamParams()'
@@ -296,7 +298,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 #' @param ... futher arguments passed into Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE, 
+bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE,
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
 
@@ -332,7 +334,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 
 
     keep = which(as.character(seqnames(intervals)) %in% seqlevels(bam))
-    
+
     if (length(keep) > 0){
       ix = c(keep[c(seq(1, length(keep), chunksize))], keep[length(keep)] + 1);  ## prevent bam error from improper chromosomes
         chunk.id = unlist(lapply(1:(length(ix) - 1), function(x) rep(x, ix[x+1] - ix[x])))
@@ -391,7 +393,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
 #' @export
-bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4, 
+bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4,
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE, bai = NULL)
 {
 
@@ -449,7 +451,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
                 chunk[, ":="(bin1 = 1 + floor((V2)/window), bin2 = 1 + floor((V2+V3)/window))]
                 chunk = chunk[, list(V1, bin = bin1:bin2), by = list(ix = 1:length(V1))]
             }
-        } else{   
+        } else{
             ## just count reads
             cat('Just counting reads\n')
             chunk = fread(paste(chunk, collapse = "\n"), header = F)
@@ -556,7 +558,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 {
     isdt = inherits(reads, 'data.table')
 
-    bad.col = c("seqnames", "ranges", "strand", "seqlevels", "seqlengths", 
+    bad.col = c("seqnames", "ranges", "strand", "seqlevels", "seqlengths",
                 "isCircular", "genome", "start", "end", "width", "element")
 
     if (verbose){
@@ -599,7 +601,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
         r.gr = c(r.gr, m.gr);
         mcols(r.gr) = rrbind(mcols(reads)[, setdiff(colnames(values(reads)), bad.col), drop = FALSE], m.val)
     } else if (isdt) {
-        m.gr = m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA, with = FALSE]
+        m.gr = m.gr[, setdiff(colnames(reads), colnames(m.gr)) := NA]
         r.gr = rbind(reads, m.gr, use.names = TRUE)
         setkey(r.gr, qname)
     }
@@ -625,7 +627,7 @@ get.pairs.grl = function(reads, pairs.grl.split = TRUE, verbose = FALSE)
 #' Takes GRanges or GappedAlignments object and uses cigar field (or takes character vector of cigar strings)
 #' and returns data.frame with fields (for character input)
 #' $right.clips number of "right" soft clips (e.g. cigar 89M12S)
-#' $left.clips number of "left" soft clips (e.g. cigar 12S89M), 
+#' $left.clips number of "left" soft clips (e.g. cigar 12S89M),
 #' or appends these fields to the reads object
 #'
 #' @param reads GenomicRanges or GappedAlignments or data.frame or data.table holding the reads
@@ -701,8 +703,8 @@ alpha = function(col, alpha)
 #' Takes GRanges or GappedAlignments object "reads" and uses cigar, MD, seq fields
 #' to return variant bases and ranges
 #'
-#' Returns GRangesList (of same length as input) of variant base positions with character vector 
-#' $varbase field populated with variant bases for each GRanges item in grl[[k]], 
+#' Returns GRangesList (of same length as input) of variant base positions with character vector
+#' $varbase field populated with variant bases for each GRanges item in grl[[k]],
 #' with the following handling for insertions, deletions, and substitution GRange's:
 #'
 #' Substitutions: nchar(gr$varbase) = width(gr) of the corresponding var
@@ -869,7 +871,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         m.st.g = starts.ref[[i]][mix]
         m.st.r = starts.seq[[i]][mix]
         s.match = rep(NA, length(s.pos.m)) ## indices of matching "M" cigar element for each sub
-        
+
         for (ii in 1:length(s.pos.m)){
             j = 0;
             done = FALSE
@@ -892,7 +894,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
         subs.base = lapply(lapply(md.vals, grep, pattern = '[ATGCNatcgn]', value = T), function(x) rep('X', length(x))) ## replace with N
     } else{
         subs.base = lapply(1:length(seq), function(x) ifelse(is.na(seq[[x]][subs.rpos[[x]]]), 'X', seq[[x]][subs.rpos[[x]]]))
-    }      
+    }
 
     ## make sure MD and cigar are consistent
     ## (for some reason - sometimes soft clipped mismatches are included in MD leading to a longer MD string)
@@ -948,16 +950,16 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     ends.ref = ends.ref[is.var]
     starts.seq = starts.seq[is.var]
     ends.seq = ends.seq[is.var]
-    str <- str[iix] 
+    str <- str[iix]
 
     if (length(cigar.vals)>0){
-        
-        var.seq = lapply(1:length(cigar.vals), function(i){                                 
-            
+
+        var.seq = lapply(1:length(cigar.vals), function(i){
+
             if (ends.seq[i]<starts.seq[i]){
                 return('') # deletion
             } else{
-                                
+
                 if (length(seq[[iix[i]]])==0){
                     rep('N', ends.seq[i]-starts.seq[i]+1)
                 } else{
@@ -966,7 +968,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
             }
         })
 
-        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)        
+        other.gr = GRanges(sn[ix][iix], IRanges(starts.ref, ends.ref), strand = str, seqlengths = sl)
         values(other.gr)$varbase = sapply(var.seq, paste, collapse = '')
         values(other.gr)$varlen = cigar.lens
         values(other.gr)$type = cigar.vals
@@ -1009,7 +1011,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
 #' @description
 #'
 #' Takes GRanges or GappedAlignments object "reads" and parses cigar fields
-#' to return GRanges or GRangesList corresponding to spliced alignments on the genome, which 
+#' to return GRanges or GRangesList corresponding to spliced alignments on the genome, which
 #' correspond to portions of the cigar
 #'
 #' i.e. each outputted GRanges/GRangesList element contains the granges corresponding to all non-N portions of cigar string
@@ -1100,7 +1102,7 @@ splice.cigar = function(reads, verbose = TRUE, fast = TRUE, use.D = TRUE, rem.so
             return(rep(GRangesList(GRanges()), nreads))
         } else{
             return(GRanges())
-        }       
+        }
     }
 
     if (fast){
@@ -1307,31 +1309,47 @@ bamtag = function(reads, secondary = FALSE, gr.string = FALSE)
 #' @param cigar character vector of cigar strings
 #' @return matrix of dimensions (4-column, length(cigar)) with the total counts for each type
 #' @export
-countCigar = function(cigar){
+countCigar = function(cigar){ 
+  ## cigar.vals = unlist(strsplit(cigar, "\\d+"))
+  ## cigar.lens = strsplit(cigar, "[A-Z]")
+  ## lens = nchar(gsub('\\d+', '', cigar))
+  ## lens[is.na(cigar)] = 1
+  ## cigar.lens = as.numeric(unlist(cigar.lens))
+  ## cigar.vals = cigar.vals[cigar.vals != ""]
+  if (length(cigar)==0)
+    return(NULL)
 
-    cigar.vals = unlist(strsplit(cigar, "\\d+"))
-    cigar.lens = strsplit(cigar, "[A-Z]")
-    lens = nchar(gsub('\\d+', '', cigar))
-    lens[is.na(cigar)] = 1
+  out = matrix(nrow=length(cigar), ncol=5, 0)
+  colnames(out) = c('D','I','M','S', 'N')
 
-    cigar.lens = as.numeric(unlist(cigar.lens))
-    cigar.vals = cigar.vals[cigar.vals != ""]
-    repr       = rep(seq_along(cigar), lens)
-    dt         = data.table(val=cigar.vals, lens=cigar.lens, group=repr, key="val")
-    
-    smr.d = dt["D",][, sum(lens), by=group]
-    smr.i = dt["I",][, sum(lens), by=group]
-    smr.m = dt["M",][, sum(lens), by=group]
-    smr.s = dt["S",][, sum(lens), by=group]
+  nnaix = !is.na(cigar)
 
-    out = matrix(nrow=length(cigar), ncol=4, 0)
-    out[smr.d$group, 1] = smr.d$V1
-    out[smr.i$group, 2] = smr.i$V1
-    out[smr.m$group, 3] = smr.m$V1
-    out[smr.s$group, 4] = smr.s$V1
-    colnames(out) = c('D','I','M','S')
+  if (any(!nnaix))
+    out[!nnaix, ] = NA
 
+  if (!any(nnaix))
     return(out)
+
+
+
+  cigar.vals = explodeCigarOps(cigar[nnaix])
+  cigar.lens = explodeCigarOpLengths(cigar[nnaix])
+  dt         = data.table(val=unlist(cigar.vals), lens=unlist(cigar.lens),
+                          group=rep(which(nnaix), elementNROWS(cigar.lens)), key="val")
+
+  smr.d = dt["D",][, sum(lens), by=group]
+  smr.i = dt["I",][, sum(lens), by=group]
+  smr.m = dt["M",][, sum(lens), by=group]
+  smr.s = dt["S",][, sum(lens), by=group]
+  smr.n = dt["N",][, sum(lens), by=group]
+
+  out[smr.d$group, 1] = smr.d$V1
+  out[smr.i$group, 2] = smr.i$V1
+  out[smr.m$group, 3] = smr.m$V1
+  out[smr.s$group, 4] = smr.s$V1
+  out[smr.n$group, 5] = smr.n$V1
+
+  return(out)
 }
 
 
@@ -1341,7 +1359,7 @@ countCigar = function(cigar){
 #' @title Check if BAM file is paired end by using 0x1 flag
 #' @description
 #'
-#' Check if BAM file is paired-end by using 0x1 flag, 
+#' Check if BAM file is paired-end by using 0x1 flag,
 #' pipes to 'samtools' via command line
 #'
 #' @param bams vector of input BAMs
@@ -1356,13 +1374,13 @@ is.paired.end = function(bams)
         if (!file.exists(x)){
             return(NA)
         }
-        out = FALSE                
+        out = FALSE
         p = pipe(sprintf('samtools view -h  %s | head -n 100 | samtools view -f 0x1 - | wc -l', x))
-        ln = as.numeric(readLines(p))   
+        ln = as.numeric(readLines(p))
         out = ln > 0
         close(p)
-        return(out)                
-    })   
+        return(out)
+    })
 
     return(out)
 }
@@ -1406,7 +1424,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 
 #' @name varcount
 #' @title Wrapper around applyPileups
-#' @description 
+#' @description
 #'
 #' Takes in vector of bam paths or GRanges corresponding to sites / territories to query,
 #' and outputs a list with fields:
@@ -1417,7 +1435,7 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 #  $gr = output ranges corresponding to "sites" columns of output
 #'
 #'
-#' varcount() relies upon varbase() 
+#' varcount() relies upon varbase()
 #'
 #' @param bams character vector of paths to bam files
 #' @param gr GRanges of (width=1) sites i.e. intervals at which to compute base coujnts
@@ -1440,8 +1458,8 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
         gr = gr.start(gr)
     }
 
-    
-    if (is.character(bams)){    
+
+    if (is.character(bams)){
 
         bami = gsub('\\.bam$', '.bai', bams)
         ix = file.exists(bami)
@@ -1468,7 +1486,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
             }
         }
     }
-    
+
 
     ix = as.logical(as.character(seqnames(gr)) %in% seqlevels(bams))
 
@@ -1534,11 +1552,11 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
                 })), c(1,3,2))
             return(out)
             }
-    }    
+    }
 
     out$gr = gr
 
-    return(out)    
+    return(out)
 }
 
 
@@ -1548,12 +1566,12 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
 #' @name mafcount
 #' @title Wrapper around varcount adapted to tumor and normal "paired" bams
-#' @description 
+#' @description
 #'
 #' Returns base counts for reference and alternative allele for an input tumor (and normal bam) and import MAF as a GRanges specifying substitutions
 #'
 #' maf is a single width GRanges describing variants and field 'ref' (or 'Reference_Allele'), 'alt' (or 'Tum_Seq_Allele1') specifying reference and alt allele.
-#' maf is assumed to have width 1 and strand is ignored.  
+#' maf is assumed to have width 1 and strand is ignored.
 #'
 #' @param tum.bam string path to tumor sample, input to Bamfile()
 #' @param norm.bam optional string path to normal sample, input to Bamfile() (optional) (default = NULL)
@@ -1575,9 +1593,9 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 
     ## xtYao: fix here rather than `varcount`
     bams = BamFileList(tum.bam)
-        
+
     if (!is.null(norm.bam)){
-            
+
         if (is.character(norm.bam)){
             norm.bam = BamFile(norm.bam)
         }
@@ -1589,16 +1607,16 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             bams2 = BamFileList(norm.bam)
         }
     }
-    
+
 
     chunks = chunk(1, length(maf), chunk.size)
 
-        
+
     if (is.null(maf$Tumor_Seq_Allele1)){
         maf$Tumor_Seq_Allele1 = maf$alt
     }
-    
-   
+
+
     if (is.null(maf$Tumor_Seq_Allele1)){
         maf$Tumor_Seq_Allele1 = maf$ALT
     }
@@ -1607,12 +1625,12 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
     if (is.null(maf$Reference_Allele)){
         maf$Reference_Allele = maf$ref
     }
-        
+
     if (is.null(maf$Reference_Allele)){
         maf$Reference_Allele = maf$REF
     }
 
-                        
+
     if (is.null(maf$Reference_Allele) | is.null(maf$Tumor_Seq_Allele1)){
         stop('Error: Cannot locate variant columns in input GRanges, please check input to make sure it either has standard VCF ALT / REF columns or MAF file columns specifying alt and ref allele')
     }
@@ -1621,12 +1639,12 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         maf$Tumor_Seq_Allele1 = sapply(maf$Tumor_Seq_Allele1, function(x) as.character(x)[1])
     }
 
-        
+
     if (!all(is.character(maf$Reference_Allele))){
         maf$Reference_Allele = as.character(maf$Reference_Allele)
     }
 
-            
+
     maf$alt.count.t = maf$ref.count.t = NA
 
     if (!is.null(norm.bam)){
@@ -1646,24 +1664,24 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         if (verbose){
             cat('Starting chunk ', chunks[i, 1], ' to ', chunks[i, 2], '\n')
         }
-                
+
         ix = chunks[i,1]:chunks[i,2]
 
         if (verbose){
             now = Sys.time()
         }
-               
+
         vc = varcount(bams, maf[ix])
 
         if (exists("bams2")){
             vc2 = varcount(bams2, maf[ix])
             ## vc$counts = abind(vc$count, vc2$count, along=3)
         }
-               
+
         if (verbose){
             print(Sys.time() - now)
         }
-               
+
         tum.count = vc$counts[,,1]
 
         if (exists("bams2")){
@@ -1673,7 +1691,7 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         if (is.null(dim(tum.count))){
             tum.count = cbind(tum.count)
         }
-        
+
         out = cbind(
             tum.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(tum.count)), 1:length(ix))],
             tum.count[cbind(match(maf$Reference_Allele[ix], rownames(tum.count)), 1:length(ix))]
@@ -1682,12 +1700,12 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         if (verbose){
             cat('Num rows:', nrow(out), '\n')
         }
-                     
+
         if (!is.null(norm.bam)){
 
             ## prevent incompatible BAM headers
             if (identical(seqlengths(bams), seqlengths(norm.bam))){
-                norm.count = vc$counts[, , 2]                      
+                norm.count = vc$counts[, , 2]
             } else{
                 norm.count = vc2$counts[, , 1]
             }
@@ -1695,13 +1713,13 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
                 norm.count = cbind(norm.count)
             }
 
-            out = cbind(out, 
+            out = cbind(out,
                 norm.count[cbind(match(maf$Tumor_Seq_Allele1[ix], rownames(norm.count)), 1:length(ix))],
                 norm.count[cbind(match(maf$Reference_Allele[ix], rownames(norm.count)), 1:length(ix))]
             )
         }
-               
-    return(out) 
+
+    return(out)
 
     }, mc.cores = mc.cores))
 
