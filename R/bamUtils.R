@@ -3,7 +3,7 @@
 #' @import data.table
 #' @import Rsamtools
 #' @import gUtils
-
+#' @import BiocGenerics
 
 #' @name read.bam
 #' @title Read BAM file into GRanges or data.table
@@ -1521,7 +1521,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
     if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
         ## xt 6/12, "path" is no longer exported from Rsamtools or BiocGenerics
-        bam.paths = path(bams)
+        bam.paths = BiocGenerics::path(bams)
     } else if (is(bams, 'BamFileList')){
         bam.paths = sapply(bams, path)
     } else if (is(bams, 'list')){
