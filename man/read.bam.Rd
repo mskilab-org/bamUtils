@@ -4,13 +4,15 @@
 \alias{read.bam}
 \title{Read BAM file into GRanges or data.table}
 \usage{
-read.bam(bam, intervals = NULL, gr = intervals, all = FALSE, bai = NULL,
-  pairs.grl = TRUE, stripstrand = TRUE, what = scanBamWhat(),
-  unpack.flag = FALSE, verbose = FALSE, tag = NULL, isPaired = NA,
-  isProperPair = NA, isUnmappedQuery = NA, hasUnmappedMate = NA,
+read.bam(bam, intervals = NULL, gr = intervals, all = FALSE,
+  bai = NULL, pairs.grl = TRUE, stripstrand = TRUE,
+  what = scanBamWhat(), unpack.flag = FALSE, verbose = FALSE,
+  tag = NULL, isPaired = NA, isProperPair = NA,
+  isUnmappedQuery = NA, hasUnmappedMate = NA,
   isNotPassingQualityControls = NA, isDuplicate = FALSE,
-  isValidVendorRead = TRUE, pairs.grl.split = TRUE, as.data.table = FALSE,
-  ignore.indels = FALSE, size.limit = 1e+06, ...)
+  isValidVendorRead = TRUE, pairs.grl.split = TRUE,
+  as.data.table = FALSE, ignore.indels = FALSE, size.limit = 1e+06,
+  ...)
 }
 \arguments{
 \item{bam}{string Input BAM file. Advisable to make BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}

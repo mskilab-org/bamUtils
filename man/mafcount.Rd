@@ -4,8 +4,8 @@
 \alias{mafcount}
 \title{Wrapper around varcount adapted to tumor and normal "paired" bams}
 \usage{
-mafcount(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE,
-  mc.cores = 1, ...)
+mafcount(tum.bam, norm.bam = NULL, maf, chunk.size = 100,
+  verbose = TRUE, mc.cores = 1, ...)
 }
 \arguments{
 \item{tum.bam}{string path to tumor sample, input to Bamfile()}

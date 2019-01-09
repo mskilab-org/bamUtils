@@ -7,8 +7,8 @@
 bam.cov.gr(bam, bai = NULL, intervals = NULL, all = FALSE,
   count.all = FALSE, isPaired = TRUE, isProperPair = TRUE,
   isUnmappedQuery = FALSE, hasUnmappedMate = FALSE,
-  isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1,
-  chunksize = 10, verbose = FALSE, ...)
+  isNotPassingQualityControls = FALSE, isDuplicate = FALSE,
+  mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 }
 \arguments{
 \item{bam}{string Input BAM file. Advisable to make the input BAM a BamFile instance instead of a plain string, so that the index does not have to be reloaded.}

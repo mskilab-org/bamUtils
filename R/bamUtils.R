@@ -99,6 +99,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         }
     }
 
+    if (class(intervals) == 'character'){
+        intervals = parse.gr(intervals, seqlengths = seqlengths(bam));
+    }
+        
     if (class(intervals) == 'data.frame'){
         intervals = seg2gr(intervals);
     }
@@ -111,8 +115,14 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         strand(intervals) = '*'
     }
 
-    intervals = reduce(intervals);
+        intervals = reduce(intervals);
 
+        if (length(intersect(seqlevels(intervals), seqlevels(bam)))==0)
+            {
+                stop('Please check your input intervals: none of them overlap with the seqlevels of the BamFile.  Most likely reason is a mismatch between chr and non-chr chromosome naming conventions')
+            }
+        
+        
     now = Sys.time();
 
     if (pairs.grl){
@@ -905,7 +915,7 @@ varbase = function(reads, soft = TRUE, verbose = TRUE)
     good.md = which(!is.na(md))
     ##  good.md = which(mlen.md == mlen.cigar & !is.na(md))
 
-    if (any(na = is.na(md))){
+    if (any(na <- is.na(md))){
 
         warning('Warning: MD field absent from one or more input reads')
         good.md = which(!na)
