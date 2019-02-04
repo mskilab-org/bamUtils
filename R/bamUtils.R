@@ -44,6 +44,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     unpack.flag = FALSE,  ## will add features corresponding to read flags
                     verbose = FALSE,
                     tag = NULL,
+                    tagFilter = list(),
                     isPaired = NA, ## if these features are NA, then reads satisfying both T and F will be returned
                     isProperPair = NA,
                     isUnmappedQuery = NA,
@@ -135,7 +136,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
     tag = unique(c('MD', 'MQ', tag))
 
-    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag, tagFilter=tagFilter)
 
     if (verbose){
         cat('Reading bam file\n')
