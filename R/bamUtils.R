@@ -44,6 +44,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     unpack.flag = FALSE,  ## will add features corresponding to read flags
                     verbose = FALSE,
                     tag = NULL,
+                    tagFilter = list(),
                     isPaired = NA, ## if these features are NA, then reads satisfying both T and F will be returned
                     isProperPair = NA,
                     isUnmappedQuery = NA,
@@ -135,7 +136,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
     tag = unique(c('MD', 'MQ', tag))
 
-    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag, tagFilter=tagFilter)
 
     if (verbose){
         cat('Reading bam file\n')
@@ -279,8 +280,6 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
     })
     return(out)
 }
-
-
 
 #' @name bam.cov.gr
 #' @title Get coverage as GRanges from BAM on custom set of GRanges
@@ -426,9 +425,14 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
     p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
 
-    i = 0
-    sl.dt = data.table(chr = names(sl), len = sl)
-    counts = sl.dt[, list(start = seq(1, len, window)), by = chr]
+  i = 0
+  sl.dt = data.table(chr = names(sl), len = sl)
+  counts = tryCatch(sl.dt[, list(start = seq(1, len, window)), by = chr], error = function(e) NULL)
+  if (is.null(counts))
+  {
+    warning('strange data.table "by" fail .. using rbindlist lapply instead as alternative')
+    counts = rbindlist(lapply(1:nrow(sl.dt), function(x) sl.dt[x, .(chr = chr, start = seq(1, len,window))]))
+  }  
     counts = counts[, bin := 1:length(start), by = chr]
     counts[, end := pmin(start + window-1, sl[chr])]
     counts[, count := 0]
