@@ -15,17 +15,18 @@ bioc_packages:
   - VariantAnnotation
   - Rsamtools
   - VariantAnnotation
-  r_github_packages:
+r_github_packages:
   - mskilab/gUtils
   - mskilab/gTrack
 before_install:
-  - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
+  - curl -OL https://raw.githubusercontent.com/craigcitro/r-travis/master/scripts/travis-tool.sh
   - chmod 755 ./travis-tool.sh
   - export R_REMOTES_NO_ERRORS_FROM_WARNINGS=TRUE
   - wget https://github.com/samtools/samtools/releases/download/1.6/samtools-1.6.tar.bz2
   - tar -vxjf samtools-1.6.tar.bz2
   - cd samtools-1.6
   - make
+  - cd ..
 script:
   - "./travis-tool.sh run_tests"
 after_failure:
