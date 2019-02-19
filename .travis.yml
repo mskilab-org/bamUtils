@@ -15,7 +15,7 @@ bioc_packages:
   - VariantAnnotation
   - Rsamtools
   - VariantAnnotation
-  r_github_packages:
+r_github_packages:
   - mskilab/gUtils
   - mskilab/gTrack
 before_install:
