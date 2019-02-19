@@ -26,6 +26,7 @@ before_install:
   - tar -vxjf samtools-1.6.tar.bz2
   - cd samtools-1.6
   - make
+  - cd ..
 script:
   - "./travis-tool.sh run_tests"
 after_failure:
