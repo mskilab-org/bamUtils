@@ -38,7 +38,7 @@ mafpath = 'snv.annotated.A4AD.maf'
 
 noindexbam = 'bam_noindex.bam'
 
-
+message("Tests starting...")
 
 test_that('read.bam', {
     ## default
