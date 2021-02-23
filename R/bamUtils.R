@@ -3,8 +3,6 @@
 #' @import data.table
 #' @import Rsamtools
 #' @import gUtils
-#' @import BiocGenerics
-#' @importFrom BiocGenerics path
 
 
 #' @name read.bam
@@ -37,8 +35,6 @@
 #' @return Reads in one of GRanges, GRangesList or data.table
 #' @export
 read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
-                    sample = NULL,
-                    seed = 42, 
                     bai = NULL,
                     pairs.grl = TRUE,   ## if TRUE will return GRangesList of read pairs for whom at least one read falls in the supplied interval
                                         ##  paired = F, # if TRUE, will used read bam gapped alignment pairs warning: will throw out pairs outside of supplied window
@@ -48,7 +44,6 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     unpack.flag = FALSE,  ## will add features corresponding to read flags
                     verbose = FALSE,
                     tag = NULL,
-                    dnastringset = FALSE, 
                     tagFilter = list(),
                     isPaired = NA, ## if these features are NA, then reads satisfying both T and F will be returned
                     isProperPair = NA,
@@ -65,7 +60,12 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                     )
 {
   suppressWarnings(
-  {
+    {
+    ## check that the BAM is valid
+    check_valid_bam = readChar(gzfile(bam, 'r'), 4)
+    if (!identical(check_valid_bam, 'BAM\1')){
+        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
+    }
 
     if (!inherits(bam, 'BamFile'))
     {
@@ -82,22 +82,6 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
             bam = BamFile(bam, index = bai)
         }
     }
-
-    ## check that the BAM is valid
-    check_valid_bam = readChar(gzfile(bam$path, 'r'), 4)
-    if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam_file' must be provided.")
-    }
-
-
-    if (!is.null(sample))
-    {
-      p = pipe(sprintf('samtools view -s %s%0.10f %s', as.integer(seed), pmax(0.0000000001, sample), bam$path))
-      out = .parse_bam(readLines(p), seqlengths = seqlengths(bam), tags = tag)
-      close(p)
-      return(out)
-    }
-
     ## if intervals unspecified will try to pull down entire bam file (CAREFUL)
     if (length(intervals)==0){
         intervals = NULL
@@ -107,13 +91,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         intervals = gr
     }
 
-      
-
     if (is.null(intervals))
-    {      
+    {
         if (all){
-          intervals = si2gr(seqinfo(bam))
-          seqlevels(intervals) = c(seqlevels(intervals), "*") # new
+            intervals = si2gr(seqinfo(bam))
         } else{
             stop('Error: Must provide non empty interval list')
         }
@@ -137,8 +118,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 
         intervals = reduce(intervals);
 
-    if (length(intersect(seqlevels(intervals), c("*", seqlevels(bam))))==0)
-#        if (length(intersect(seqlevels(intervals), seqlevels(bam)))==0)
+        if (length(intersect(seqlevels(intervals), seqlevels(bam)))==0)
             {
                 stop('Please check your input intervals: none of them overlap with the seqlevels of the BamFile.  Most likely reason is a mismatch between chr and non-chr chromosome naming conventions')
             }
@@ -150,20 +130,13 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         paired = FALSE
     }
 
-
     flag = scanBamFlag(isPaired = isPaired, isProperPair = isProperPair, isUnmappedQuery = isUnmappedQuery,
                        hasUnmappedMate = hasUnmappedMate, isNotPassingQualityControls = isNotPassingQualityControls,
                        isDuplicate = isDuplicate, ...)
 
     tag = unique(c('MD', 'MQ', tag))
 
-    if(all){
-      param = ScanBamParam(what = what, flag = flag, tag = tag, tagFilter=tagFilter)
-    } else{
-      param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag, tagFilter=tagFilter)
-    }
-    
-#    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag, tagFilter=tagFilter)
+    param = ScanBamParam(which = gr.fix(intervals, bam, drop = TRUE), what = what, flag = flag, tag = tag, tagFilter=tagFilter)
 
     if (verbose){
         cat('Reading bam file\n')
@@ -214,7 +187,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                 x$Q2 <- rep(NA, length(x$qname))
             }
             x
-        }), fill=T, use.names=T))
+        })))
 
         ## faster CIGAR string parsing with vectorization and data tables
         if (verbose) {
@@ -263,10 +236,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
         if (!as.data.table) {
-            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2)), strand = out$strand, seqlengths = seqlengths(intervals))
+            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
             values(out) <- vals;
         } else {
-            out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2, 0), strand=out$strand)
+            out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
@@ -288,11 +261,6 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         print(Sys.time() - now)
     }
 
-
-      if (dnastringset)
-        out$seq = DNAStringSet(out$seq)
-
-      
     if (pairs.grl){
 
         if (verbose){
@@ -339,8 +307,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
 #' @param ... futher arguments passed into Rsamtools::scanBamFlag()
 #' @return GRanges parallel to input GRanges, but with metadata filled in.
 #' @export
-bam.cov.gr = function(bam, intervals = NULL, bai = NULL,
-                      all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE,
+bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all = FALSE, isPaired = TRUE, isProperPair = TRUE, isUnmappedQuery = FALSE,
     hasUnmappedMate = FALSE, isNotPassingQualityControls = FALSE, isDuplicate = FALSE, mc.cores = 1, chunksize = 10, verbose = FALSE, ...)
 {
 
@@ -558,11 +525,13 @@ get.mate.gr = function(reads)
         mrnm = as.vector(values(reads)$mrnm)
         mapq = values(reads)$MQ
         bad.chr = !(mrnm %in% seqlevels(reads)); ## these are reads mapping to chromosomes that are not in the current "genome"
-        mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (i.e. as if unmapped)m
+        mrnm[bad.chr] = as.character(seqnames(reads)[bad.chr]) # we set mates with "bad" chromosomes to have 0 width and same seqnames (i.e. as if unmapped)
     } else if (inherits(reads, 'data.table')) {
         mpos <- reads$mpos
         mrnm <- reads$mrnm
         mapq = reads$MQ
+        bad.chr <- !(mrnm %in% c(seq(22), 'X', 'Y', 'M'))
+        mrnm[bad.chr] <- reads$seqnames[bad.chr]
     }
 
     if (inherits(reads, 'GappedAlignments')){
@@ -584,6 +553,9 @@ get.mate.gr = function(reads)
         ab=data.table(seqnames=mrnm, start=mpos, end=mpos + mwidth - 1, strand=c('+','-')[1+bamflag(reads$flag)[,'isMateMinusStrand']], qname=reads$qname, mapq = mapq)
     }
 }
+
+
+
 
 
 #' @name get.pairs.grl
@@ -1379,19 +1351,11 @@ countCigar = function(cigar){
   dt         = data.table(val=unlist(cigar.vals), lens=unlist(cigar.lens),
                           group=rep(which(nnaix), elementNROWS(cigar.lens)), key="val")
 
-  setkey(dt, "group")
-
-  ## smr.d = dt["D",][, sum(lens), by=group]
-  ## smr.i = dt["I",][, sum(lens), by=group]
-  ## smr.m = dt["M",][, sum(lens), by=group]
-  ## smr.s = dt["S",][, sum(lens), by=group]
-  ## smr.n = dt["N",][, sum(lens), by=group]
-
-  smr.d = dt[val == "D", .(V1 = sum(lens)), by = group]
-  smr.i = dt[val == "I", .(V1 = sum(lens)), by = group]
-  smr.m = dt[val == "M", .(V1 = sum(lens)), by = group]
-  smr.s = dt[val == "S", .(V1 = sum(lens)), by = group]
-  smr.n = dt[val == "N", .(V1 = sum(lens)), by = group]
+  smr.d = dt["D",][, sum(lens), by=group]
+  smr.i = dt["I",][, sum(lens), by=group]
+  smr.m = dt["M",][, sum(lens), by=group]
+  smr.s = dt["S",][, sum(lens), by=group]
+  smr.n = dt["N",][, sum(lens), by=group]
 
   out[smr.d$group, 1] = smr.d$V1
   out[smr.i$group, 2] = smr.i$V1
@@ -1564,11 +1528,11 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
         ##                         }
         ##                     })
         ##     }
-      ## } else {
+        ## } else {
         pu = applyPileups(PileupFiles(bams), function(x) x, param = pp)
         ## }
     }
-    path = get("path", envir = asNamespace("BiocGenerics"))
+
     if (is(bams, 'BamFile') | is(bams, 'BamFileList')){
         ## xt 6/12, "path" is no longer exported from Rsamtools or BiocGenerics
         bam.paths = path(bams)
@@ -1609,61 +1573,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
     return(out)
 }
 
-.parse_bam = function(lines, seqlengths = NULL, tags = NULL)
-{
-    fields = c('qname', 'flag', 'rname', 'pos', 'mapq', 'cigar', 'rnext', 'pnext', 'tlen', 'seq', 'qual')
-#    lines = gsub('\n', '', lines)   
-    linesp = strsplit(lines, '\t')
 
-    chunk = data.table::as.data.table(do.call(rbind, lapply(linesp, function(x) x[1:11])))
-    chunk$line = 1:length(chunk$V1)
-    ## figure out the optional columns of the BAM read and annotate them. 
-    m = munlist(lapply(linesp, function(x) x[-c(1:11)]))    
-    tagchunk = fread(paste(m[,3], collapse = '\n'), sep = ':')
-    tagchunk$line = as.numeric(m[,1])
-    if (is.null(tags))
-        tags = unique(tagchunk$V1)
-    utags = union(tags, unique(tagchunk$V1))
-    tagchunk$V1 = factor(tagchunk$V1, utags)
-                                        #    tagchunk = dcast.data.table(tagchunk[tagchunk$V1 %in% tags, ], line ~ V1, value.var = 'V3', fill = NA, drop = FALSE)
-    tagchunk = dcast.data.table(tagchunk, line ~ V1, value.var = 'V2', fill = NA, drop = FALSE)
-    out = merge(chunk, tagchunk, by = 'line', all.x = TRUE)[, -1, with = FALSE]
-    setnames(out, 1:11, fields)
-    out = out[, c(fields, tags), with = FALSE]
-
-    cigs = countCigar(out$cigar)
-
-    out$pos = as.numeric(out$pos)+1
-    
-    out$pos2 <- out$pos + rowSums(cigs[, c("D", "M"), drop = FALSE], na.rm=T) - 1
-        
-    out$qwidth = nchar(out$seq)
-    out$strand = bamflag(out$flag)[, "isMinusStrand"] == 1
-    out$strand = ifelse(out$strand, "-", "+")
-    
-    unmapped = bamflag(out$flag)[,"isUnmappedQuery"] == 1
-    if (any(unmapped))
-    {
-        out$pos[unmapped] = 1
-        out$pos2[unmapped] = 0
-        out$strand[unmapped] = "*"
-    }
-    
-    bf = out$flag
-    
-    newdt <- data.table(pos = out$pos, pos2 = out$pos2, strand = out$strand, rname = out$rname)   # create data.table of start, end, strand, seqnames
-
-    rr = IRanges(newdt$pos, newdt$pos2)
-    sf = factor(newdt$strand, levels=c('+', '-', '*'))
-    ff = newdt$rname
-
-    gr.fields = c("rname", "strand", "pos", "pos2")
-    grobj = GRanges(seqnames=ff, ranges=rr, strand=sf)
-    
-    vals = out[, setdiff(names(out), gr.fields), with=FALSE]
-    values(grobj) =  vals    
-    return(grobj)
-}
 
 
 
@@ -1691,22 +1601,18 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
 {
 
 
-  if (is.character(tum.bam)){
-    if (!file.exists(tum.bam))
-      return("tumor bam file doesn't exist")
-    tum.bam = BamFile(tum.bam)
-  }
+    if (is.character(tum.bam)){
+        tum.bam = BamFile(tum.bam)
+    }
 
     ## xtYao: fix here rather than `varcount`
     bams = BamFileList(tum.bam)
 
     if (!is.null(norm.bam)){
 
-      if (is.character(norm.bam)){
-        if (!file.exists(norm.bam))
-          return("normal bam file doesn't exist")
-        norm.bam = BamFile(norm.bam)
-      }
+        if (is.character(norm.bam)){
+            norm.bam = BamFile(norm.bam)
+        }
 
         ## prevent incompatible BAM headers
         if (identical(seqlengths(bams), seqlengths(norm.bam))){
@@ -1716,11 +1622,8 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
         }
     }
 
-    if (is.null(dim(maf))) {
-        chunks = chunk(1, length(maf), chunk.size)
-    } else {
-        chunks = chunk(1, nrow(maf), chunk.size)
-    }
+
+    chunks = chunk(1, length(maf), chunk.size)
 
 
     if (is.null(maf$Tumor_Seq_Allele1)){
