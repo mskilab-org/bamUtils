@@ -4,8 +4,15 @@
 \alias{splice.cigar}
 \title{Get coverage as GRanges from BAM on custom set of GRanges}
 \usage{
-splice.cigar(reads, verbose = TRUE, fast = TRUE, use.D = TRUE,
-  rem.soft = TRUE, get.seq = FALSE, return.grl = TRUE)
+splice.cigar(
+  reads,
+  verbose = TRUE,
+  fast = TRUE,
+  use.D = TRUE,
+  rem.soft = TRUE,
+  get.seq = FALSE,
+  return.grl = TRUE
+)
 }
 \arguments{
 \item{reads}{GenomicRanges or GappedAlignments or data.frame input reads}
