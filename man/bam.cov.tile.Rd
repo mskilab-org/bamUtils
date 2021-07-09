@@ -4,10 +4,19 @@
 \alias{bam.cov.tile}
 \title{Get coverage as GRanges from BAM on genome tiles across seqlengths of genome}
 \usage{
-bam.cov.tile(bam.file, window = 100, chunksize = 1e+05,
-  min.mapq = 30, verbose = TRUE, max.tlen = 10000,
-  st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE,
-  midpoint = TRUE, bai = NULL)
+bam.cov.tile(
+  bam.file,
+  window = 100,
+  chunksize = 1e+05,
+  min.mapq = 30,
+  verbose = TRUE,
+  max.tlen = 10000,
+  st.flag = "-f 0x02 -F 0x10",
+  fragments = TRUE,
+  do.gc = FALSE,
+  midpoint = TRUE,
+  bai = NULL
+)
 }
 \arguments{
 \item{bam.file}{string Input BAM file}
