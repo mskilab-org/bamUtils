@@ -29,7 +29,7 @@ before_install:
   - cd samtools-1.6
   - make
   - cd ..
-  = export PATH=samtools-1.6/:$PATH
+  - export PATH=samtools-1.6/:$PATH
 script:
   - "Rscript -e 'devtools::install();devtools::test()'"
   - "./travis-tool.sh run_tests"
