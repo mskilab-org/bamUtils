@@ -12,13 +12,15 @@ Depends:
     GenomicRanges,
     GenomicAlignments, 
     Rsamtools (>= 1.18),
-    gUtils
+    gUtils,
+    BiocGenerics
 Imports:
-    abind, 
-    VariantAnnotation
+    abind,
+    VariantAnnotation,
+    BiocGenerics
 Suggests:
     testthat
 License: GPL-2
 BugReports: http://github.com/mskilab/bamUtils/issues
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

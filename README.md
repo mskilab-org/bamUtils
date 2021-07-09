@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/mskilab/bamUtils.svg?branch=master)](https://travis-ci.org/mskilab/bamUtils)
+[![Build Status](https://travis-ci.org/mskilab/bamUtils.svg?branch=master)](https://travis-ci.com/mskilab/bamUtils)
 [![codecov.io](https://img.shields.io/codecov/c/github/mskilab/bamUtils.svg)](https://codecov.io/github/mskilab/bamUtils?branch=master)
 
 

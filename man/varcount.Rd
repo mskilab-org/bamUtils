@@ -4,8 +4,15 @@
 \alias{varcount}
 \title{Wrapper around applyPileups}
 \usage{
-varcount(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500,
-  indel = FALSE, ...)
+varcount(
+  bams,
+  gr,
+  min.mapq = 0,
+  min.baseq = 20,
+  max.depth = 500,
+  indel = FALSE,
+  ...
+)
 }
 \arguments{
 \item{bams}{character vector of paths to bam files}

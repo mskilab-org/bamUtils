@@ -378,6 +378,22 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 
 
 
+#' @title bamorcram
+#' @description
+#' Checks to see if file is bam or cram and
+#' @param file [ath
+#' @author Marcin Imielinski
+bamorcram = function(file)
+{
+  check_valid_bam = suppressWarnings(readChar(gzfile(file, 'r'), 4))
+  file.type = NA
+  if (identical(check_valid_bam, 'BAM\1')){
+    file.type = 'bam'
+  } else if (identical(check_valid_bam, 'CRAM')){
+    file.type = 'cram'
+  }  
+  return(file.type)
+}
 
 
 #' @name bam.cov.tile
@@ -396,34 +412,48 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 #' @param verbose boolean Flag to increase vebosity (default = TRUE)
 #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
 #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
+#' @param reference path to reference FASTA recommended if CRAM file is provided [NULL] 
 #' @param fragments boolean flag (default = FALSE) detremining whether to compute fragment (i.e. proper pair footprint aka insert) density or read density
 #' @param do.gc boolean Flag to execute garbage collection via 'gc()' (default = FALSE)
 #' @param midpoint boolean Flag if TRUE will only use the fragment midpoint, if FALSE will count all bins that overlap the fragment (default = TRUE)
 #' @return GRanges of "window" bp tiles across seqlengths of bam.file with meta data field $counts specifying fragment counts centered (default = TRUE)
 #' in the given bin.
+#' @author Marcin Imielinski
 #' @export
-bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, verbose = TRUE, max.tlen = 1e4,
+bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, reference = NULL, verbose = TRUE, max.tlen = 1e4,
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE, bai = NULL)
 {
 
-    ## check that the BAM is valid
-    check_gz = gzfile(bam.file, 'r')
-    check_valid_bam = readChar(check_gz, 4)
-    if (!identical(check_valid_bam, 'BAM\1')){
-        stop("Cannot open BAM. A valid BAM for 'bam.file' must be provided.")
-    }
-    on.exit(close(check_gz))
+  file.type = bamorcram(bam.file)
 
-
-    cmd = 'samtools view %s %s -q %s | cut -f "3,4,9"' ## cmd line to grab the rname, pos, and tlen columns
-
+  if (is.null(file.type))
+    stop("Cannot read from bam.file. A valid path to a BAM or CRAM file must be provided for 'bam_file' must be provided for bam file argument.")
+  
+  ref = ''
+  if (file.type == 'cram')
+  {
+    sl = tryCatch(seqlengths(FaFile(reference)), error = function(e) NULL)
+    if (is.null(sl))
+      stop('Valid fasta file must be provided with cram')
+    
+    ref = paste('-T', reference)
+  }
+  else
+  {
     sl = seqlengths(BamFile(bam.file))
+  }
+  
+  cmd = 'samtools view %s %s %s -q %s | cut -f "3,4,9"' ## ocmd line to grab the rname, pos, and tlen columns
+  
+  
 
     counts = lapply(sl, function(x) rep(0, ceiling(x/window)))
     numwin = sum(sapply(sl, function(x) ceiling(x/window)))
 
-    cat('Calling', sprintf(cmd, st.flag, bam.file, min.mapq), '\n')
-    p = pipe(sprintf(cmd, st.flag, bam.file, min.mapq), open = 'r')
+  if (verbose)
+    cat('Calling', sprintf(cmd, ref, st.flag, bam.file, min.mapq), '\n')
+
+  p = pipe(sprintf(cmd, ref, st.flag, bam.file, min.mapq), open = 'r')
 
   i = 0
   sl.dt = data.table(chr = names(sl), len = sl)
@@ -1561,11 +1591,13 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
         if (any(ix)){
             nna = sapply(pu, function(x) length(x$seq)>0)
             out$counts[,which(ix)[nna],] = aperm(do.call('abind', lapply(pu, function(x){
-                out = array(NA, dim = c(length(cnames), dim(x$seq)[2:3]), dimnames = list(cnames));
-                out[rownames(x$seq),, ] = x$seq
+              out = array(NA, dim = c(length(cnames), dim(x$seq)[2:3]), dimnames = list(cnames));
+              out[cnames,, ] = x$seq[cnames,,]
+              out
+#              out[rownames(x$seq),, ] = x$seq ### fixed by mimielinski Friday, Jun 18, 2021 02:41:31 PM ... was causing mixup in base calls when indel == TRUE
                 })), c(1,3,2))
             return(out)
-            }
+        }
     }
 
     out$gr = gr
