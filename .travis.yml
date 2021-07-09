@@ -30,7 +30,7 @@ before_install:
   - make
   - cd ..
 script:
-    - Rscript -e 'devtools::install();devtools::test()'
+  - "Rscript -e 'devtools::install();devtools::test()'"
   - "./travis-tool.sh run_tests"
 #after_failure: 
 #  - "./travis-tool.sh dump_logs"
