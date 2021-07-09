@@ -313,7 +313,7 @@ bam.cov.gr = function(bam, bai = NULL, intervals = NULL, all = FALSE, count.all 
 
     ## check that the BAM is valid
     check_gz = gzfile(bam, 'r')
-    check_valid_bam = readChar(check_gz, 4)
+    check_valid_bam = suppressWarnings(readChar(check_gz, 4))
     if (!identical(check_valid_bam, 'BAM\1')){
         stop("Cannot open BAM. A valid BAM for 'bam' must be provided.")
     }

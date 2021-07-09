@@ -47,7 +47,7 @@ test_that('read.bam', {
     expect_error(read.bam(example_bam, all=TRUE, intervals = GRanges('chr1:10075-10100'))) ## ERROR in GenomeInfoDb:::getDanglingSeqlevels()
     
     tmp = read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'))
-    expect_equal(length(tmp), 1027)
+    expect_equal(length(tmp), 987)
     expect_equal(tmp[[1]]$flag[1], 163)  ## same results with all=TRUE
     expect_match(tmp[[1]]$cigar[1], '2S6M1I63M1I8M1I8M11S')
     
@@ -60,11 +60,11 @@ test_that('read.bam', {
     expect_match(as.character( strand(tmp[[1]][2])), '-')
     
     ## verbose
-    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 1027)
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 987)
     
 
     expect_equal(length(read.bam(example_bam, all=TRUE, intervals = grl2, verbose=TRUE)), 0)
-    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = as.data.frame(gr2dt(GRanges('1:10075-10100'))), verbose=TRUE)), 1027)
+    expect_equal(length(read.bam(example_bam, all=TRUE, intervals = as.data.frame(gr2dt(GRanges('1:10075-10100'))), verbose=TRUE)), 987)
     
     ## check 'tag' works correctly
     expect_true(('R1' %in% colnames(read.bam(example_bam, all=FALSE, intervals = GRanges('1:10075-10100'), tag = 'R1', as.data.table=TRUE, verbose=TRUE))))
@@ -72,7 +72,7 @@ test_that('read.bam', {
     #### checking Rsamtools::scanBamFlag() flags
     ## 'isPaired'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isPaired = 'foo'))
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isPaired = TRUE)), 1027)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isPaired = TRUE)), 987)
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)), 0)
     expect_equal(length(read.bam(example_bam, all = TRUE, isPaired = TRUE)), 4999)
     expect_equal(length(read.bam(example_bam, all = TRUE, isPaired = FALSE)), 0)
@@ -81,31 +81,31 @@ test_that('read.bam', {
     ## 'isProperPair'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = 'foo'))   ### Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = TRUE)), 896)
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)), 131)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isProperPair = FALSE)), 91)
     expect_equal(length(read.bam(example_bam, all = TRUE, isProperPair = TRUE)), 4343)
     expect_equal(length(read.bam(example_bam, all = TRUE, isProperPair = FALSE)), 656)
     ## 'isUnmappedQuery'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = 'foo')) ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)), 55)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = TRUE)), 14)
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isUnmappedQuery = FALSE)), 975)
     expect_equal(length(read.bam(example_bam, all = TRUE, isUnmappedQuery = TRUE)), 365)
     expect_equal(length(read.bam(example_bam, all = TRUE, isUnmappedQuery = FALSE)), 4724)
     ## 'hasUnmappedMate'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = 'foo')) ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = TRUE)), 3)
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = FALSE)), 1027)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), hasUnmappedMate = FALSE)), 986)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = TRUE)), 90)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = FALSE)), 4999)
     ## 'isNotPassingQualityControls'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = 'foo'))  ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = TRUE)), 0)
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = FALSE)), 1027)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isNotPassingQualityControls = FALSE)), 987)
     expect_equal(length(read.bam(example_bam, all = TRUE, isNotPassingQualityControls = TRUE)), 0)
     expect_equal(length(read.bam(example_bam, all = TRUE, isNotPassingQualityControls = FALSE)), 4999)
     ## 'isDuplicate'
     expect_error(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = 'foo'))  ## Error in !is.na(x) && x : invalid 'y' type in 'x && y'
     expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = TRUE)), 147)
-    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = FALSE)), 1027)
+    expect_equal(length(read.bam(example_bam, intervals = GRanges('1:10075-10100'), isDuplicate = FALSE)), 987)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = TRUE)), 90)
     expect_equal(length(read.bam(example_bam, all = TRUE, hasUnmappedMate = FALSE)), 4999)
     ## issue with 'ignore.indels'
@@ -136,8 +136,8 @@ test_that('bam.cov.gr', {
     ## verbose
     expect_equal(width(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), verbose=TRUE)), 26)
     ## count.all
-    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$records, 1372)
-    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$nucleotides, 138572)
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$records, 1331)
+    expect_equal(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), count.all=TRUE)$nucleotides, 134431)
     ## isPaired
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$records), 0)
     expect_equal(as.integer(bam.cov.gr(example_bam, intervals = GRanges('1:10075-10100'), isPaired = FALSE)$nucleotides), 0)

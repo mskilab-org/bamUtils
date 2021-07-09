@@ -9,6 +9,7 @@ bam.cov.tile(
   window = 100,
   chunksize = 1e+05,
   min.mapq = 30,
+  reference = NULL,
   verbose = TRUE,
   max.tlen = 10000,
   st.flag = "-f 0x02 -F 0x10",
@@ -26,6 +27,8 @@ bam.cov.tile(
 \item{chunksize}{integer Size of window (default = 1e5)}
 
 \item{min.mapq}{integer Minimim map quality reads to consider for counts (default = 30)}
+
+\item{reference}{path to reference FASTA recommended if CRAM file is provided [NULL]}
 
 \item{verbose}{boolean Flag to increase vebosity (default = TRUE)}
 
@@ -48,4 +51,7 @@ Quick way to get tiled coverage via piping to samtools (e.g. ~10 CPU-hours for 1
 
 Gets coverage for window size "window" [bp], pulling "chunksize" records at a time and incrementing bin
 corresponding to midpoint or overlaps of corresponding (proper pair) fragment (uses TLEN and POS for positive strand reads that are part of a proper pair)
+}
+\author{
+Marcin Imielinski
 }
