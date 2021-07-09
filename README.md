@@ -3,6 +3,7 @@
 [![codecov.io](https://img.shields.io/codecov/c/github/mskilab/bamUtils.svg)](https://codecov.io/github/mskilab/bamUtils?branch=master)
 
 
+
 # bamUtils
 
 Set of utility functions to access reads, compute coverage, and extract variant
