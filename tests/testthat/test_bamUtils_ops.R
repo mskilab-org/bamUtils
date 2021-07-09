@@ -203,6 +203,9 @@ test_that('bam.cov.tile', {
 
 
 
+
+
+##
 ## get.mate.gr()
 test_that('get.mate.gr', {
 
