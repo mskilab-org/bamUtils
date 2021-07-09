@@ -9,6 +9,7 @@ r_packages:
   - devtools
   - testthat
   - data.table
+  - roxygen2
   - abind
 bioc_packages:
   - GenomicAlignments
@@ -29,6 +30,7 @@ before_install:
   - make
   - cd ..
 script:
+    - Rscript -e 'devtools::install();devtools::test()'
   - "./travis-tool.sh run_tests"
 #after_failure:
 #  - "./travis-tool.sh dump_logs"
