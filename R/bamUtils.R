@@ -3,7 +3,7 @@
 #' @import data.table
 #' @import Rsamtools
 #' @import gUtils
-
+#' @importFrom parallel mclapply
 
 #' @name read.bam
 #' @title Read BAM file into GRanges or data.table
