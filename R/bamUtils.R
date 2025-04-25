@@ -410,6 +410,7 @@ bamorcram = function(file)
 #' @param chunksize integer Size of window (default = 1e5)
 #' @param min.mapq integer Minimim map quality reads to consider for counts (default = 30)
 #' @param verbose boolean Flag to increase vebosity (default = TRUE)
+#' @param min.tlen integer Minimum paired-read insert size to consider (default = 0)
 #' @param max.tlen integer Maximum paired-read insert size to consider (default = 1e4)
 #' @param st.flag string Samtools flag to filter reads on (default = '-f 0x02 -F 0x10')
 #' @param reference path to reference FASTA recommended if CRAM file is provided [NULL] 
@@ -420,7 +421,7 @@ bamorcram = function(file)
 #' in the given bin.
 #' @author Marcin Imielinski
 #' @export
-bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, reference = NULL, verbose = TRUE, max.tlen = 1e4,
+bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, reference = NULL, verbose = TRUE, min.tlen = 0, max.tlen = 1e4,
                         st.flag = "-f 0x02 -F 0x10", fragments = TRUE, do.gc = FALSE, midpoint = TRUE, bai = NULL)
 {
 
@@ -472,7 +473,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
     st = Sys.time()
     if (verbose){
-        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and   insert size limit', max.tlen, 'with midpoint set to', midpoint, '\n')
+        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and insert size limits between ', min.tlen, ' and ', max.tlen, 'with midpoint set to', midpoint, '\n')
     }
 
     while (length(chunk <- readLines(p, n = chunksize)) > 0)
@@ -481,7 +482,10 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
         if (fragments){
 
-            chunk = fread(paste(chunk, collapse = "\n"), header = F)[abs(V3) <= max.tlen, ]  ## only take midpoints
+            chunk = fread(paste(chunk, collapse = "\n"), header = F)[{
+				abs_v3 = abs(V3) 
+				abs_v3 <= max.tlen & abs_v3 >= min.tlen
+			}, ]  ## only take midpoints
 
             if (midpoint){
                 ## only take midpoints
