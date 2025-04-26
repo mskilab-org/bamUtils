@@ -451,8 +451,37 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
     counts = lapply(sl, function(x) rep(0, ceiling(x/window)))
     numwin = sum(sapply(sl, function(x) ceiling(x/window)))
 
-  if (verbose)
-    cat('Calling', sprintf(cmd, ref, st.flag, bam.file, min.mapq), '\n')
+  if (verbose) {
+	
+    cat('Calling', sprintf(cmd, ref, st.flag, bam.file, min.mapq), '\n\n')
+
+	incl_flag = gsub(".*(-f [[:graph:]]+).*", "\\1", st.flag, perl = TRUE)
+	excl_flag = gsub(".*(-F [[:graph:]]+).*", "\\1", st.flag, perl = TRUE)
+	incl_flag = gsub("-(f|F)[[:space:]]+", "", incl_flag, perl = TRUE)
+	excl_flag = gsub("-(f|F)[[:space:]]+", "", excl_flag, perl = TRUE)
+	incl_flag = bamUtils::bamflag(incl_flag)
+	excl_flag = bamUtils::bamflag(excl_flag)
+
+	incl_flag_names = colnames(incl_flag)[incl_flag[1,] > 0]
+	excl_flag_names = colnames(excl_flag)[excl_flag[1,] > 0]
+
+	if (NROW(incl_flag_names) > 0) {
+		message("Including reads with the all of the following flags:")
+		for (fl in incl_flag_names) {
+			message(fl)
+		}
+		message("")
+	}
+
+	if (NROW(excl_flag_names) > 0) {
+		message("Excluding reads with any of the following flags:")
+		for (fl in excl_flag_names) {
+			message(fl)
+		}
+		message("")
+	}
+    
+  }
 
   p = pipe(sprintf(cmd, ref, st.flag, bam.file, min.mapq), open = 'r')
 
@@ -473,7 +502,7 @@ bam.cov.tile = function(bam.file, window = 1e2, chunksize = 1e5, min.mapq = 30, 
 
     st = Sys.time()
     if (verbose){
-        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and insert size limits between ', min.tlen, ' and ', max.tlen, 'with midpoint set to', midpoint, '\n')
+        cat('Starting fragment count on', bam.file, 'with bin size', window, 'and min mapQ', min.mapq, 'and insert size limits between', min.tlen, 'and', max.tlen, 'with midpoint set to', midpoint, '\n')
     }
 
     while (length(chunk <- readLines(p, n = chunksize)) > 0)
