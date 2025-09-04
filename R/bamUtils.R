@@ -236,10 +236,10 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
         vals = out[, setdiff(names(out), gr.fields), with=FALSE]
 
         if (!as.data.table) {
-            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2-1)), strand = out$strand, seqlengths = seqlengths(intervals))
+            out <- GRanges(out$rname, IRanges(out$pos, pmax(0, out$pos2)), strand = out$strand, seqlengths = seqlengths(intervals))
             values(out) <- vals;
         } else {
-            out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2-1, 0), strand=out$strand)
+            out <- data.table(seqnames=out$rname, start=out$pos, end= pmax(out$pos2, 0), strand=out$strand)
             val <- data.table(vals)
             out <- cbind(out, val)
         }
