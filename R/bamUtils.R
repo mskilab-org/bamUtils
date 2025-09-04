@@ -187,7 +187,7 @@ read.bam = function(bam, intervals = NULL, gr = intervals, all = FALSE,
                 x$Q2 <- rep(NA, length(x$qname))
             }
             x
-        })))
+        }), use.names = TRUE))
 
         ## faster CIGAR string parsing with vectorization and data tables
         if (verbose) {
