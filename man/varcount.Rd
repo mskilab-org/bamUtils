@@ -11,6 +11,7 @@ varcount(
   min.baseq = 20,
   max.depth = 500,
   indel = FALSE,
+  bamflag = Rsamtools::scanBamFlag(),
   ...
 )
 }
@@ -26,6 +27,8 @@ varcount(
 \item{max.depth}{integer Maximum read depth to consider (default = 500)}
 
 \item{indel}{boolean Flag whether to consider indels (default = FALSE)}
+
+\item{bamflag}{integer BAM flag to use for filtering reads (default is set to no filtering). Please see documentation for Rsamtools::scanBamFlag() for details on how to specify this argument}
 
 \item{...}{other args be passed to read.bam(). Please see documentation for read.bam()}
 }

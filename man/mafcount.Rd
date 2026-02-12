@@ -11,6 +11,7 @@ mafcount(
   chunk.size = 100,
   verbose = TRUE,
   mc.cores = 1,
+  bamflag = Rsamtools::scanBamFlag(),
   ...
 )
 }
@@ -26,6 +27,8 @@ mafcount(
 \item{verbose}{logical Flag whether to print verbose output (default = TRUE)}
 
 \item{mc.cores}{integer Number of cores in mclapply (default = 1)}
+
+\item{bamflag}{integer BAM flag to use for filtering reads (default is set to no filtering). Please see documentation for Rsamtools::scanBamFlag() for details on how to specify this argument}
 
 \item{...}{additional pparams to pass to varcount}
 }

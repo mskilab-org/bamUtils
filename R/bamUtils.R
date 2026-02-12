@@ -1,10 +1,3 @@
-#' @import GenomicRanges
-#' @import GenomicAlignments
-#' @import data.table
-#' @import Rsamtools
-#' @import gUtils
-#' @importFrom parallel mclapply
-
 #' @name read.bam
 #' @title Read BAM file into GRanges or data.table
 #' @description
@@ -1520,14 +1513,13 @@ chunk = function(from, to = NULL, by = 1, length.out = NULL)
 #' @param min.baseq integer Minimal base quality at which to compute bases (default = 20)
 #' @param max.depth integer Maximum read depth to consider (default = 500)
 #' @param indel boolean Flag whether to consider indels (default = FALSE)
+#' @param bamflag integer BAM flag to use for filtering reads (default is set to no filtering). Please see documentation for Rsamtools::scanBamFlag() for details on how to specify this argument
 #' @param ... other args be passed to read.bam(). Please see documentation for read.bam()
 #' @return GRanges annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
 #' @author Marcin Imielinski
 #' @export
-varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, indel = FALSE, ...)
+varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, indel = FALSE, bamflag = Rsamtools::scanBamFlag(), ...)
 {
-    require(abind)
-    require(Rsamtools)
 
     out = list()
 
@@ -1569,7 +1561,7 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 
     if (any(ix)){
 
-        pp = ApplyPileupsParam(which = gr[ix], what = c("seq"), minBaseQuality = min.baseq, minMapQuality = min.mapq, maxDepth = max.depth)
+        pp = ApplyPileupsParam(which = gr[ix], what = c("seq"), minBaseQuality = min.baseq, minMapQuality = min.mapq, maxDepth = max.depth, flag = bamflag)
         ## ## xtYao fix: function applyPileups fail at heterogeneous BAM seqlevels
         ## ## do them separately and put back
         ## if (length(bams)==2){
@@ -1658,11 +1650,12 @@ varcount = function(bams, gr, min.mapq = 0, min.baseq = 20, max.depth = 500, ind
 #' @param chunk.size integer Number of variants to extract from bam file at each iteration (default = 100)
 #' @param verbose logical Flag whether to print verbose output (default = TRUE)
 #' @param mc.cores integer Number of cores in mclapply (default = 1)
+#' @param bamflag integer BAM flag to use for filtering reads (default is set to no filtering). Please see documentation for Rsamtools::scanBamFlag() for details on how to specify this argument
 #' @param ...  additional pparams to pass to varcount
 #' @return GRanges of MAF annotated with fields $alt.count.t, $ref.count.t, $alt.count.n, $ref.count.n
 #' @author Marcin Imielinski
 #' @export
-mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, ...)
+mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = TRUE, mc.cores = 1, bamflag = Rsamtools::scanBamFlag(), ...)
 {
 
 
@@ -1750,10 +1743,10 @@ mafcount = function(tum.bam, norm.bam = NULL, maf, chunk.size = 100, verbose = T
             now = Sys.time()
         }
 
-        vc = varcount(bams, maf[ix])
+        vc = varcount(bams, maf[ix], bamflag = bamflag, ...)
 
         if (exists("bams2")){
-            vc2 = varcount(bams2, maf[ix])
+            vc2 = varcount(bams2, maf[ix], bamflag = bamflag, ...)
             ## vc$counts = abind(vc$count, vc2$count, along=3)
         }
 

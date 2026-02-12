@@ -11,6 +11,7 @@ bam.cov.tile(
   min.mapq = 30,
   reference = NULL,
   verbose = TRUE,
+  min.tlen = 0,
   max.tlen = 10000,
   st.flag = "-f 0x02 -F 0x10",
   fragments = TRUE,
@@ -31,6 +32,8 @@ bam.cov.tile(
 \item{reference}{path to reference FASTA recommended if CRAM file is provided [NULL]}
 
 \item{verbose}{boolean Flag to increase vebosity (default = TRUE)}
+
+\item{min.tlen}{integer Minimum paired-read insert size to consider (default = 0)}
 
 \item{max.tlen}{integer Maximum paired-read insert size to consider (default = 1e4)}
 
